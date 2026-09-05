@@ -192,7 +192,7 @@ let state = {
   destProvince: '',
   isCbOpen: false,
   isDestOpen: false,
-  selectedPrefs: ['bien'],
+  selectedPrefs: [],
   // Mảng lưu các điểm đã check-in (dạng Set, mỗi phần tử là "day-session-index")
   checkedDestinations: {}
 };
@@ -201,9 +201,12 @@ let state = {
 
 // A. Duration Stepper
 function updateDuration(val) {
-  val = Math.max(1, Math.min(30, val));
+  val = Number(val);
+  if (isNaN(val)) val = 0;
+  val = Math.max(0, val);
   state.duration = val;
-  inputDays.value = val;
+  // Khi chưa có giá trị (0) thì để ô trống thay vì hiển thị cố định số "0"
+  inputDays.value = val === 0 ? '' : val;
 
   presetBtns.forEach(btn => {
     if (parseInt(btn.dataset.days) === val) {
@@ -218,7 +221,7 @@ function updateDuration(val) {
 
 btnMinus.addEventListener('click', () => updateDuration(state.duration - 1));
 btnPlus.addEventListener('click', () => updateDuration(state.duration + 1));
-inputDays.addEventListener('change', (e) => updateDuration(parseInt(e.target.value) || 1));
+inputDays.addEventListener('change', (e) => updateDuration(parseInt(e.target.value) || 0));
 
 presetBtns.forEach(btn => {
   btn.addEventListener('click', () => updateDuration(parseInt(btn.dataset.days)));
@@ -264,9 +267,12 @@ function renderComboboxList(filterText = '') {
 
 function renderDestinationList(filterText = '') {
   let html = '';
+  const backBtn = document.getElementById('dest-back-btn');
 
   if (state.destLevel === 1) {
     if (destAzEl) destAzEl.style.display = 'flex';
+    if (backBtn) backBtn.hidden = true;
+    destSearch.placeholder = "Tìm kiếm điểm đến...";
 
     // Level 1: Choose Province, group by A-Z
     let allProvinces = [];
@@ -276,11 +282,44 @@ function renderDestinationList(filterText = '') {
 
     // Filter and Sort
     const filteredOpts = allProvinces.filter(o => o.toLowerCase().includes(filterText.toLowerCase()));
-    filteredOpts.sort((a, b) => {
-      let cleanA = a;
-      let cleanB = b;
-      return cleanA.localeCompare(cleanB, 'vi');
+    
+    const grouped = {};
+    filteredOpts.forEach(opt => {
+      let cleanOpt = opt;
+      let letter = cleanOpt.charAt(0).toUpperCase();
+      if (letter === 'Đ') letter = 'Đ';
+      else if (!/[A-Z]/.test(letter)) letter = '#';
+      if (!grouped[letter]) grouped[letter] = [];
+      grouped[letter].push(opt);
     });
+
+    const sortedKeys = Object.keys(grouped).sort((a, b) => {
+      if (a === '#') return 1;
+      if (b === '#') return -1;
+      return a.localeCompare(b, 'vi');
+    });
+
+    sortedKeys.forEach(key => {
+      html += `<div class="loc-group" data-group="${key}">
+                 <div class="loc-group-title">${key}</div>`;
+      
+      grouped[key].sort((a, b) => a.localeCompare(b, 'vi')).forEach(opt => {
+        const isSelected = opt === state.destProvince;
+        const hasDistricts = DESTINATION_LOCATIONS[opt] ? true : false;
+        html += `<button type="button" class="loc-item level-1-opt ${isSelected ? 'selected' : ''}" data-value="${opt}" style="display: flex; align-items: center; justify-content: flex-start; gap: 8px;">
+                   ${hasDistricts ? `<i data-lucide="chevron-right" style="width: 16px; height: 16px; color: var(--slate);"></i>` : `<span style="width: 16px; display: inline-block;"></span>`}
+                   <span>${opt}</span>
+                 </button>`;
+      });
+      html += `</div>`;
+    });
+  } else {
+    if (destAzEl) destAzEl.style.display = 'flex';
+    if (backBtn) backBtn.hidden = false;
+    destSearch.placeholder = "Tìm kiếm quận/huyện...";
+
+    const districts = getDistrictsForProvince(state.destProvince);
+    const filteredOpts = districts.filter(o => o.toLowerCase().includes(filterText.toLowerCase()));
 
     const grouped = {};
     filteredOpts.forEach(opt => {
@@ -300,42 +339,22 @@ function renderDestinationList(filterText = '') {
 
     sortedKeys.forEach(key => {
       html += `<div class="loc-group" data-group="${key}">
-                 <div class="loc-group-title" style="padding: 0.25rem 1rem; font-weight: 700; color: var(--accent); background: #f8fafc;">${key}</div>`;
-      grouped[key].forEach(opt => {
-        const isSelected = opt === state.destProvince;
-        const hasDistricts = DESTINATION_LOCATIONS[opt] ? true : false;
-        html += `<button type="button" class="loc-item level-1-opt ${isSelected ? 'selected' : ''}" data-value="${opt}" style="width: 100%; text-align: left; padding: 0.75rem 1rem; border: none; background: transparent; cursor: pointer; color: var(--ink); border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: flex-start; gap: 8px;">
-                   ${hasDistricts ? `<i data-lucide="chevron-right" style="width: 16px; height: 16px; color: var(--slate);"></i>` : `<span style="width: 16px; display: inline-block;"></span>`}
+                 <div class="loc-group-title">${key}</div>`;
+      
+      grouped[key].sort((a, b) => a.localeCompare(b, 'vi')).forEach(opt => {
+        const fullVal = `${opt}, ${state.destProvince}`;
+        const isSelected = fullVal === state.destination;
+        html += `<button type="button" class="loc-item level-2-opt ${isSelected ? 'selected' : ''}" data-value="${opt}" style="display: flex; align-items: center; justify-content: flex-start; gap: 8px;">
+                   ${isSelected ? `<i data-lucide="check" class="check-icon" style="width: 16px; height: 16px;"></i>` : `<span style="width: 16px; display: inline-block;"></span>`}
                    <span>${opt}</span>
                  </button>`;
       });
       html += `</div>`;
     });
-  } else {
-    if (destAzEl) destAzEl.style.display = 'none';
-    // Level 2: Choose District
-    html += `<div style="padding: 10px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--slate-soft); transition: background 0.2s;" id="dest-back-btn" onmouseover="this.style.background='#F1F5F9'" onmouseout="this.style.background='transparent'">
-               <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
-               <span style="font-weight: 600; font-size: 0.9rem;">${state.destProvince}</span>
-             </div>`;
-
-    const districts = getDistrictsForProvince(state.destProvince);
-    const filteredOpts = districts.filter(o => o.toLowerCase().includes(filterText.toLowerCase()));
-
-    if (filteredOpts.length > 0) {
-      filteredOpts.forEach(opt => {
-        const fullVal = `${opt}, ${state.destProvince}`;
-        const isSelected = fullVal === state.destination;
-        html += `<button type="button" class="loc-item level-2-opt ${isSelected ? 'selected' : ''}" data-value="${opt}" style="width: 100%; text-align: left; padding: 0.75rem 1rem; border: none; background: transparent; cursor: pointer; color: var(--ink); border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: flex-start; gap: 8px;">
-                   ${isSelected ? `<i data-lucide="check" class="check-icon" style="width: 16px; height: 16px;"></i>` : `<span style="width: 16px; display: inline-block;"></span>`}
-                   <span>${opt}</span>
-                 </button>`;
-      });
-    }
   }
 
   if (!html) {
-    html = `<div style="padding: 1rem; text-align: center; color: var(--slate-soft); font-size: 0.9rem;">Không tìm thấy khu vực nào</div>`;
+    html = `<div class="loc-empty">Không tìm thấy khu vực nào</div>`;
   }
 
   destList.innerHTML = html;
@@ -365,17 +384,6 @@ function renderDestinationList(filterText = '') {
       });
     });
   } else {
-    const backBtn = document.getElementById('dest-back-btn');
-    if (backBtn) {
-      backBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        state.destLevel = 1;
-        destSearch.value = '';
-        renderDestinationList();
-        destSearch.focus();
-      });
-    }
-
     const opts = destList.querySelectorAll('.level-2-opt');
     opts.forEach(opt => {
       opt.addEventListener('click', () => {
@@ -388,6 +396,19 @@ function renderDestinationList(filterText = '') {
       });
     });
   }
+}
+
+// Ensure backBtn has the event listener only once
+const destBackBtn = document.getElementById('dest-back-btn');
+if (destBackBtn && !destBackBtn.dataset.bound) {
+  destBackBtn.dataset.bound = true;
+  destBackBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    state.destLevel = 1;
+    destSearch.value = '';
+    renderDestinationList();
+    destSearch.focus();
+  });
 }
 
 function toggleCombobox() {
@@ -557,6 +578,7 @@ const flatpickrConfig = {
   dateFormat: "d/m/Y",
   locale: "vn",
   disableMobile: true,
+  position: "below",
   onReady: function (selectedDates, dateStr, instance) {
     const btnContainer = document.createElement("div");
     btnContainer.className = "flatpickr-buttons";
@@ -612,8 +634,8 @@ const flatpickrConfig = {
   }
 };
 
-if (startDateEl) flatpickr(startDateEl, flatpickrConfig);
-if (endDateEl) flatpickr(endDateEl, flatpickrConfig);
+if (startDateEl) flatpickr(startDateEl, Object.assign({}, flatpickrConfig, { position: "auto left" }));
+if (endDateEl) flatpickr(endDateEl, Object.assign({}, flatpickrConfig, { position: "auto right" }));
 
 tagButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
@@ -832,17 +854,26 @@ function renderDestCard(item, kind, slotKey, provinceStr) {
   const safeProvince = escapeHtml(provinceStr);
 
   return `
-    <div class="destination-card ${isFood ? 'food-card' : 'visit-card'}">
+       <div class="destination-card ${isFood ? 'food-card' : 'visit-card'} ${state.checkedDestinations[`${state.selectedDay}-${slotKey}-${safeKeyword}`] ? 'is-checked' : ''}">
       <div class="dest-image-wrap" onclick="openImageLightbox(this)">
         <img src="${GRAY_PLACEHOLDER}" alt="${safeTitle}" data-keyword="${safeKeyword}" data-fallback-keyword="${safeProvince}" class="dynamic-dest-img">
         <div class="dest-overlay"></div>
         <span class="dest-type-badge"><i data-lucide="${badgeIcon}"></i></span>
         <i data-lucide="maximize-2" class="dest-expand-icon"></i>
         <h3 class="dest-title i18n-dyn" data-vi="${safeTitle}">${safeTitle}</h3>
-      </div>
+        <label class="dest-checkin-label" onclick="event.stopPropagation()">
+          <input type="checkbox" class="dest-checkin-cb" data-key="${state.selectedDay}-${slotKey}-${safeKeyword}" ${state.checkedDestinations[`${state.selectedDay}-${slotKey}-${safeKeyword}`] ? 'checked' : ''}>
+          <span class="dest-checkin-mark"></span>
+        </label>
+
+        </div>
       <div class="dest-body">
-        <div class="dest-meta"><i data-lucide="clock" class="meta-icon"></i> ${hours}</div>
+        <div class="dest-meta">
+          <div><i data-lucide="clock" class="meta-icon"></i> ${hours}</div>
+          <div><i data-lucide="map" class="meta-icon"></i> ${safeProvince}</div>
+        </div>
         <div class="dest-tips">
+          <h4><i data-lucide="info" class="tips-icon"></i> ${isFood ? 'Mô tả' : 'Local Tips'}</h4>
           <p class="i18n-dyn" data-vi="${safeBody}">${safeBody}</p>
         </div>
       </div>
@@ -933,24 +964,32 @@ function renderResult() {
     html += `<div style="text-align:center; padding:3rem; color:var(--slate-soft);">Chưa có hoạt động nào cho ngày này.</div>`;
   } else {
     const sessions = [
-      { id: 'morning', title: '🌅 Buổi Sáng', gradient: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+      {
+        id: 'morning', title: '🌅 Buổi Sáng', gradient: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
         groups: [
           { groupKey: 'food', kind: 'food', slotKey: 'breakfast', items: dayItinerary.morning.food },
           { groupKey: 'visit', kind: 'visit', slotKey: 'morningVisit', items: dayItinerary.morning.visit }
-        ] },
-      { id: 'noon', title: '🍲 Buổi Trưa', gradient: 'linear-gradient(135deg, #34d399 0%, #10b981 100%)',
+        ]
+      },
+      {
+        id: 'noon', title: '🍲 Buổi Trưa', gradient: 'linear-gradient(135deg, #34d399 0%, #10b981 100%)',
         groups: [
           { groupKey: 'food', kind: 'food', slotKey: 'lunch', items: dayItinerary.noon.food }
-        ] },
-      { id: 'afternoon', title: '☀️ Buổi Chiều', gradient: 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)',
+        ]
+      },
+      {
+        id: 'afternoon', title: '☀️ Buổi Chiều', gradient: 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)',
         groups: [
           { groupKey: 'visit', kind: 'visit', slotKey: 'afternoonVisit', items: dayItinerary.afternoon.visit }
-        ] },
-      { id: 'evening', title: '🌙 Buổi Tối', gradient: 'linear-gradient(135deg, #818cf8 0%, #4f46e5 100%)',
+        ]
+      },
+      {
+        id: 'evening', title: '🌙 Buổi Tối', gradient: 'linear-gradient(135deg, #818cf8 0%, #4f46e5 100%)',
         groups: [
           { groupKey: 'food', kind: 'food', slotKey: 'dinner', items: dayItinerary.evening.food },
           { groupKey: 'nightlifeVisit', kind: 'nightlifeVisit', slotKey: 'nightlife', items: dayItinerary.evening.visit }
-        ] }
+        ]
+      }
     ];
 
     sessions.forEach(session => {
@@ -970,25 +1009,6 @@ function renderResult() {
           <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: white;">${session.title}</h3>
         </div>
       `;
-              </div>
-              <h3 class="dest-title">${dest.name}</h3>
-            </div>
-            <div class="dest-body">
-              <div class="dest-meta">
-                <div><i data-lucide="clock" class="meta-icon"></i> ${dest.duration}</div>
-                <div><i data-lucide="map" class="meta-icon"></i> ${dest.province}</div>
-              </div>
-              <div class="dest-hours">
-                <h4>Giờ mở cửa</h4>
-                <p>${dest.hours}</p>
-              </div>
-              <div class="dest-tips">
-                <h4><i data-lucide="info" class="tips-icon"></i> Local Tips</h4>
-                <p>${dest.tips.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</p>
-              </div>
-            </div>
-          </div>
-        `;
 
       session.groups.forEach(group => {
         html += renderSubGroup(group.groupKey, group.items, group.kind, group.slotKey, provinceStr);
@@ -1031,7 +1051,7 @@ function renderResult() {
   // Gắn nút Lưu lịch trình thật (thay thế onclick giả của script.js)
   var saveBtn = document.getElementById('save-itinerary-btn');
   if (saveBtn && typeof window.handleSaveItinerary === 'function') {
-    saveBtn.onclick = function(e) { e.preventDefault(); window.handleSaveItinerary(); };
+    saveBtn.onclick = function (e) { e.preventDefault(); window.handleSaveItinerary(); };
   }
 
   if (!state.isRerendering) {

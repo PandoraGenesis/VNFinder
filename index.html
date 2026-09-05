@@ -39,9 +39,26 @@
       font-family: 'Be Vietnam Pro', sans-serif;
       border: none !important;
       border-radius: 16px !important;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1) !important;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15) !important;
       padding: 10px;
       width: 320px !important;
+      max-width: calc(100vw - 24px) !important;
+      z-index: 999999 !important;
+    }
+
+    @media (max-width: 768px) {
+      .flatpickr-calendar.open {
+        left: 50% !important;
+        right: auto !important;
+        transform: translateX(-50%) !important;
+      }
+    }
+
+    .flatpickr-days,
+    .dayContainer {
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
     }
 
     .flatpickr-months {
@@ -166,7 +183,7 @@
     .loc-panel {
       display: flex;
       flex-direction: column;
-      height: 500px;
+      max-height: 500px;
       width: 100%;
     }
 
@@ -239,12 +256,11 @@
 
     .dest-body {
       display: flex;
-      flex: 1;
       position: relative;
       background: #fff;
       border-bottom-left-radius: 12px;
       border-bottom-right-radius: 12px;
-      height: 234px;
+      max-height: 350px;
       overflow-y: auto;
       align-items: stretch;
     }
@@ -290,13 +306,14 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      align-self: stretch;
       justify-content: space-evenly;
       padding: 4px 0;
       background: rgba(255, 255, 255, 0.5);
       z-index: 10;
       position: sticky;
       top: 0;
-      height: 350px;
+      height: auto;
     }
 
     .loc-az::-webkit-scrollbar {
@@ -1047,141 +1064,143 @@
 
         <!-- ============ FORM NHẬP LIỆU ============ -->
         <section class="planner-card container">
-          <div class="planner-grid">
+          <div class="planner-grid" style="display: flex; flex-direction: column; gap: 1.8rem;">
 
-            <!-- Thời gian du lịch (Trái) -->
-            <div style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+            <!-- Bố cục 2 cột theo thiết kế: Cột trái = Thời gian du lịch (Số Ngày, Số Đêm) + Ngày đến/Ngày đi;
+                 Cột phải = Điểm khởi hành + Điểm đến. Mục "Ngày" đã bị xóa nên Số Ngày/Số Đêm được giãn đều
+                 (flex: 1 mỗi ô) để lấp khoảng trống thay vì thêm lại cột thứ 3. -->
+            <div style="display: flex; flex-wrap: wrap; gap: 2rem; align-items: flex-start;">
 
-              <!-- Khối trên: Tiêu đề + Hàng 1 -->
-              <div>
-                <label
-                  style="font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; color: var(--ink); margin-bottom: 12px; display: flex; align-items: center; gap: 0.5rem;"><i
-                    data-lucide="clock" class="label-icon"></i> Thời gian du lịch</label>
+              <!-- Cột trái -->
+              <div style="flex: 1 1 480px; min-width: 280px; display: flex; flex-direction: column; gap: 1.8rem;">
 
-                <!-- Hàng 1: Ngày, Số Ngày, Số đêm -->
-                <div style="display: flex; gap: 16px; flex-wrap: wrap;">
-                  <div class="sub-field">
-                    <label
-                      style="font-size: 0.85rem; font-weight: 600; color: var(--slate); margin-bottom: 8px; display: flex; align-items: center; gap: 4px;"><i
-                        data-lucide="calendar" class="label-icon" style="width: 14px; height: 14px;"></i> Ngày</label>
-                    <div class="stepper" style="margin-bottom: 0;">
-                      <button type="button" id="btn-minus-total" class="stepper-btn"><i
-                          data-lucide="minus"></i></button>
-                      <input type="number" id="total-days" value="" min="1" max="30">
-                      <button type="button" id="btn-plus-total" class="stepper-btn"><i data-lucide="plus"></i></button>
-                    </div>
-                  </div>
-
-                  <div class="sub-field">
-                    <label
-                      style="font-size: 0.85rem; font-weight: 600; color: var(--slate); margin-bottom: 8px; display: flex; align-items: center; gap: 4px;"><i
-                        data-lucide="sun" class="label-icon" style="width: 14px; height: 14px;"></i> Số Ngày</label>
-                    <div class="stepper" style="margin-bottom: 0;">
-                      <button type="button" id="btn-minus" class="stepper-btn"><i data-lucide="minus"></i></button>
-                      <input type="number" id="days" value="" min="1" max="30">
-                      <button type="button" id="btn-plus" class="stepper-btn"><i data-lucide="plus"></i></button>
-                    </div>
-                  </div>
-
-                  <div class="sub-field">
-                    <label
-                      style="font-size: 0.85rem; font-weight: 600; color: var(--slate); margin-bottom: 8px; display: flex; align-items: center; gap: 4px;"><i
-                        data-lucide="moon" class="label-icon" style="width: 14px; height: 14px;"></i> Số Đêm</label>
-                    <div class="stepper" style="margin-bottom: 0;">
-                      <button type="button" id="btn-minus-nights" class="stepper-btn"><i
-                          data-lucide="minus"></i></button>
-                      <input type="number" id="nights" value="" min="0" max="30">
-                      <button type="button" id="btn-plus-nights" class="stepper-btn"><i data-lucide="plus"></i></button>
-                    </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Khối dưới: Hàng 2 (Ngày đến, Ngày đi) -->
-              <div style="display: flex; gap: 16px; margin-top: 16px;">
-                <div class="sub-field" style="flex: 1;">
+                <!-- Thời gian du lịch: Số Ngày, Số Đêm -->
+                <div>
                   <label
-                    style="font-size: 0.85rem; font-weight: 600; color: var(--slate); margin-bottom: 8px; display: flex; align-items: center; gap: 4px;"><i
-                      data-lucide="calendar-plus" class="label-icon" style="width: 14px; height: 14px;"></i> Ngày
-                    đến</label>
-                  <div style="position: relative; display: flex; align-items: center;">
-                    <input type="text" id="start-date" class="date-input" placeholder="dd/mm/yyyy" maxlength="10"
-                      style="width: 100%; height: 50px; padding: 0 12px; border: 1.5px solid var(--border); border-radius: 12px; background: #F8FAFC; color: var(--ink); font-size: 0.95rem; outline: none; font-family: inherit;">
-                    <i data-lucide="calendar"
-                      style="position: absolute; right: 12px; color: var(--slate); pointer-events: none;"></i>
-                  </div>
-                </div>
+                    style="font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; color: var(--ink); margin-bottom: 12px; display: flex; align-items: center; gap: 0.5rem;"><i
+                      data-lucide="clock" class="label-icon"></i> Thời gian du lịch</label>
 
-                <div class="sub-field" style="flex: 1;">
-                  <label
-                    style="font-size: 0.85rem; font-weight: 600; color: var(--slate); margin-bottom: 8px; display: flex; align-items: center; gap: 4px;"><i
-                      data-lucide="calendar-minus" class="label-icon" style="width: 14px; height: 14px;"></i> Ngày
-                    đi</label>
-                  <div style="position: relative; display: flex; align-items: center;">
-                    <input type="text" id="end-date" class="date-input" placeholder="dd/mm/yyyy" maxlength="10"
-                      style="width: 100%; height: 50px; padding: 0 12px; border: 1.5px solid var(--border); border-radius: 12px; background: #F8FAFC; color: var(--ink); font-size: 0.95rem; outline: none; font-family: inherit;">
-                    <i data-lucide="calendar"
-                      style="position: absolute; right: 12px; color: var(--slate); pointer-events: none;"></i>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Cột Phải: Địa điểm -->
-            <div style="display: flex; flex-direction: column; gap: 1.8rem; height: 100%;">
-              <!-- Điểm khởi hành (Combobox) -->
-              <div class="field" id="departure-container" style="margin-bottom: 0;">
-                <label
-                  style="font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; color: var(--ink); margin-bottom: 12px; display: flex; align-items: center; gap: 0.5rem;"><i
-                    data-lucide="navigation" class="label-icon"></i> Điểm khởi hành</label>
-                <div class="combobox" id="departure-combobox">
-                  <button type="button" class="combobox-trigger" id="departure-trigger">
-                    <span id="departure-text" style="color: var(--slate);">Vui lòng chọn điểm khởi hành</span>
-                    <i data-lucide="chevron-down" id="departure-chevron" class="chevron-icon"></i>
-                  </button>
-                  <div class="combobox-dropdown" id="departure-dropdown" hidden>
-                    <div class="combobox-search-row">
-                      <i data-lucide="search" class="search-icon"></i>
-                      <input type="text" id="departure-search" placeholder="Tìm kiếm khu vực">
-                      <button type="button" id="departure-clear" hidden><i data-lucide="x"></i></button>
-                    </div>
-                    <div class="combobox-list" id="departure-list">
-                      <!-- Sẽ được render qua JS -->
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Điểm đến (Combobox) -->
-              <div class="field" id="destination-container" style="margin-bottom: 0;">
-                <label
-                  style="font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; color: var(--ink); margin-bottom: 12px; display: flex; align-items: center; gap: 0.5rem;"><i
-                    data-lucide="map-pin" class="label-icon"></i> Điểm đến</label>
-                <div class="combobox" id="destination-combobox">
-                  <button type="button" class="combobox-trigger" id="destination-trigger">
-                    <span id="destination-text" style="color: var(--slate);">Vui lòng chọn điểm đến</span>
-                    <i data-lucide="chevron-down" id="destination-chevron" class="chevron-icon"></i>
-                  </button>
-                  <div class="combobox-dropdown" id="destination-dropdown" hidden>
-                    <div class="loc-panel">
-                      <div class="loc-header">
-                        <div class="loc-search">
-                          <i data-lucide="search" style="color:#94a3b8; width:18px; height:18px;"></i>
-                          <input type="text" id="destination-search" placeholder="Tìm kiếm điểm đến...">
-                          <button type="button" id="destination-clear" hidden><i data-lucide="x"></i></button>
-                        </div>
+                  <div style="display: flex; flex-wrap: wrap; gap: 16px;">
+                    <div class="sub-field" style="flex: 1; min-width: 120px;">
+                      <label
+                        style="font-size: 0.85rem; font-weight: 600; color: var(--slate); margin-bottom: 8px; display: flex; align-items: center; gap: 4px;"><i
+                          data-lucide="sun" class="label-icon" style="width: 14px; height: 14px;"></i> Số Ngày</label>
+                      <div class="stepper" style="margin-bottom: 0; width: 100%;">
+                        <button type="button" id="btn-minus" class="stepper-btn"><i data-lucide="minus"></i></button>
+                        <input type="number" id="days" value="" style="flex: 1; min-width: 0;">
+                        <button type="button" id="btn-plus" class="stepper-btn"><i data-lucide="plus"></i></button>
                       </div>
-                      <div class="dest-body">
-                        <div class="loc-list" id="destination-list">
-                          <!-- Sẽ được render qua JS -->
-                        </div>
+                    </div>
+
+                    <div class="sub-field" style="flex: 1; min-width: 120px;">
+                      <label
+                        style="font-size: 0.85rem; font-weight: 600; color: var(--slate); margin-bottom: 8px; display: flex; align-items: center; gap: 4px;"><i
+                          data-lucide="moon" class="label-icon" style="width: 14px; height: 14px;"></i> Số Đêm</label>
+                      <div class="stepper" style="margin-bottom: 0; width: 100%;">
+                        <button type="button" id="btn-minus-nights" class="stepper-btn"><i
+                            data-lucide="minus"></i></button>
+                        <input type="number" id="nights" value="" style="flex: 1; min-width: 0;">
+                        <button type="button" id="btn-plus-nights" class="stepper-btn"><i
+                            data-lucide="plus"></i></button>
                       </div>
                     </div>
                   </div>
                 </div>
+
+                <!-- Ngày đến, Ngày đi -->
+                <div style="display: flex; flex-wrap: wrap; gap: 16px;">
+                  <div class="sub-field" style="flex: 1; min-width: 140px;">
+                    <label
+                      style="font-size: 0.8rem; font-weight: 600; color: var(--slate); margin-bottom: 8px; display: flex; align-items: center; gap: 4px;"><i
+                        data-lucide="calendar-plus" class="label-icon" style="width: 16px; height: 16px;"></i> Ngày
+                      đến</label>
+                    <div style="position: relative; display: flex; align-items: center;">
+                      <input type="text" id="start-date" class="date-input" placeholder="dd/mm/yyyy" maxlength="10"
+                        style="width: 100%; height: 50px; padding: 0 12px; border: 1.5px solid var(--border); border-radius: 12px; background: #F8FAFC; color: var(--ink); font-size: 0.95rem; outline: none; font-family: inherit;">
+                      <i data-lucide="calendar"
+                        style="position: absolute; right: 12px; color: var(--slate); pointer-events: none;"></i>
+                    </div>
+                  </div>
+
+                  <div class="sub-field" style="flex: 1; min-width: 140px;">
+                    <label
+                      style="font-size: 0.8rem; font-weight: 600; color: var(--slate); margin-bottom: 8px; display: flex; align-items: center; gap: 4px;"><i
+                        data-lucide="calendar-minus" class="label-icon" style="width: 16px; height: 16px;"></i> Ngày
+                      đi</label>
+                    <div style="position: relative; display: flex; align-items: center;">
+                      <input type="text" id="end-date" class="date-input" placeholder="dd/mm/yyyy" maxlength="10"
+                        style="width: 100%; height: 50px; padding: 0 12px; border: 1.5px solid var(--border); border-radius: 12px; background: #F8FAFC; color: var(--ink); font-size: 0.95rem; outline: none; font-family: inherit;">
+                      <i data-lucide="calendar"
+                        style="position: absolute; right: 12px; color: var(--slate); pointer-events: none;"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Cột phải -->
+              <div style="flex: 1 1 380px; min-width: 260px; display: flex; flex-direction: column; gap: 1.8rem;">
+
+                <!-- Điểm khởi hành (Combobox) -->
+                <div class="field" id="departure-container" style="margin-bottom: 0;">
+                  <label
+                    style="font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; color: var(--ink); margin-bottom: 12px; display: flex; align-items: center; gap: 0.5rem;"><i
+                      data-lucide="navigation" class="label-icon"></i> Điểm khởi hành</label>
+                  <div class="combobox" id="departure-combobox">
+                    <button type="button" class="combobox-trigger" id="departure-trigger">
+                      <span id="departure-text" style="color: var(--slate);">Vui lòng chọn điểm khởi hành</span>
+                      <i data-lucide="chevron-down" id="departure-chevron" class="chevron-icon"></i>
+                    </button>
+                    <div class="combobox-dropdown" id="departure-dropdown" hidden>
+                      <div class="combobox-search-row">
+                        <i data-lucide="search" class="search-icon"></i>
+                        <input type="text" id="departure-search" placeholder="Tìm kiếm khu vực">
+                        <button type="button" id="departure-clear" hidden><i data-lucide="x"></i></button>
+                      </div>
+                      <div class="combobox-list" id="departure-list">
+                        <!-- Sẽ được render qua JS -->
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Điểm đến (Combobox) -->
+                <div class="field" id="destination-container" style="margin-bottom: 0;">
+                  <label
+                    style="font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; color: var(--ink); margin-bottom: 12px; display: flex; align-items: center; gap: 0.5rem;"><i
+                      data-lucide="map-pin" class="label-icon"></i> Điểm đến</label>
+                  <div class="combobox" id="destination-combobox">
+                    <button type="button" class="combobox-trigger" id="destination-trigger">
+                      <span id="destination-text" style="color: var(--slate);">Vui lòng chọn điểm đến</span>
+                      <i data-lucide="chevron-down" id="destination-chevron" class="chevron-icon"></i>
+                    </button>
+                    <div class="combobox-dropdown" id="destination-dropdown" hidden>
+                      <div class="loc-panel">
+                        <div class="loc-header">
+                          <button type="button" class="loc-back-btn" id="dest-back-btn" hidden>
+                            <i data-lucide="arrow-left" style="width: 18px; height: 18px;"></i>
+                          </button>
+                          <div class="loc-search">
+                            <i data-lucide="search" style="color:#94a3b8; width:18px; height:18px;"></i>
+                            <input type="text" id="destination-search" placeholder="Tìm kiếm điểm đến...">
+                            <button type="button" id="destination-clear" hidden><i data-lucide="x"></i></button>
+                          </div>
+                        </div>
+                        <div class="loc-body">
+                          <div class="loc-list" id="destination-list">
+                            <!-- Sẽ được render qua JS -->
+                          </div>
+                          <div class="loc-az" id="dest-loc-az">
+                            <!-- A-Z sidebar -->
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
+
           </div>
 
           <!-- Alert Thời tiết (hiện bằng JS) -->
@@ -1211,7 +1230,7 @@
           <div class="field field--tags">
             <p class="field-label"><i data-lucide="heart" class="label-icon"></i> Sở thích trải nghiệm</p>
             <div class="tag-group" id="tag-group">
-              <button type="button" class="tag active" data-tag="bien">🌊 Biển đảo &amp; Vịnh</button>
+              <button type="button" class="tag" data-tag="bien">🌊 Biển đảo &amp; Vịnh</button>
               <button type="button" class="tag" data-tag="nuirung">⛰️ Núi rừng &amp; Cao nguyên</button>
               <button type="button" class="tag" data-tag="amthuc">🍜 Ẩm thực &amp; Thành phố</button>
               <button type="button" class="tag" data-tag="disan">🏛️ Lịch sử &amp; Di sản</button>

@@ -10,7 +10,7 @@ const dict = {
   "Trình duyệt của bạn không hỗ trợ định vị.": "Your browser doesn't support geolocation.",
   "Đang xin quyền truy cập vị trí thiết bị…": "Requesting access to your device location…",
   "Đang tìm địa danh gần vị trí của bạn…": "Looking for landmarks near your location…",
-  "Chưa tìm thấy địa danh nào trong bán kính 10km quanh vị trí hiện tại.": "No landmark found within 10km of your current location.",
+  "Chưa tìm thấy địa danh nào trong bán kính 3km quanh vị trí hiện tại.": "No landmark found within 3km of your current location.",
   "Không thể kết nối tới Wikipedia để tra cứu địa danh. Vui lòng thử lại sau.": "Couldn't connect to Wikipedia to look up this landmark. Please try again later.",
   "Không thể lấy vị trí của bạn. Vui lòng thử lại.": "Couldn't get your location. Please try again.",
   "Bạn đã từ chối quyền truy cập vị trí. Hãy bật lại quyền định vị trong trình duyệt để dùng tính năng này.": "You've denied location access. Please re-enable location permission in your browser to use this feature.",

@@ -10,7 +10,7 @@
  *    TỰ ĐỘNG tra cứu Wikipedia và hiển thị luôn một bài viết cho địa danh
  *    đó — không cần bấm Enter, và không thêm thẻ mới vào lưới cố định.
  * 3) Định vị thiết bị (Geolocation API) + Wikipedia geosearch: khi người
- *    dùng ở gần một địa danh có bài trên Wikipedia (bán kính 10km), lưới
+ *    dùng ở gần một địa danh có bài trên Wikipedia (bán kính 3km), lưới
  *    "Bạn có biết" được ẩn đi và một bài giới thiệu địa danh đó (kèm ảnh,
  *    tóm tắt, nguồn) được hiển thị thay thế.
  * 4) Ảnh cho bài viết theo vị trí/tìm kiếm: nếu trang Wikipedia không có
@@ -201,10 +201,22 @@
       pithumbsize: 500
     }).then(function (data) {
       const pages = (data.query && data.query.pages) || [];
-      if (pages[0] && pages[0].thumbnail && pages[0].thumbnail.source) {
-        setCardImage(card, pages[0].thumbnail.source);
+      const src = pages[0] && pages[0].thumbnail && pages[0].thumbnail.source;
+      if (src) {
+        setCardImage(card, src);
+        return;
       }
-    }).catch(function () { /* giữ nguyên nền placeholder trong CSS */ });
+      // Wikipedia không có ảnh -> bắt buộc tìm ảnh dự phòng trên Commons
+      // rồi Openverse, đảm bảo thẻ nào cũng có ảnh hiển thị.
+      findSupplementalImage(keyword).then(function (imgUrl) {
+        if (imgUrl) setCardImage(card, imgUrl);
+      });
+    }).catch(function () {
+      // Lỗi gọi Wikipedia -> vẫn thử tìm ảnh dự phòng thay vì bỏ cuộc.
+      findSupplementalImage(keyword).then(function (imgUrl) {
+        if (imgUrl) setCardImage(card, imgUrl);
+      });
+    });
   }
 
   function setCardImage(card, src) {
@@ -296,274 +308,391 @@
     }
   }
 
-  function searchWikipediaTitle(query) {
-    return wikiFetch(WIKI_API, {
-      action: 'query',
-      list: 'search',
-      srsearch: query,
-      srlimit: 1
-    }).then(function (data) {
-      const results = (data.query && data.query.search) || [];
-      return results[0] ? results[0].title : null;
-    }).catch(function () { return null; });
+  // Giữ nguyên từ khóa người dùng nhập, không chèn thêm chữ "Việt Nam".
+  // Duyệt qua danh sách kết quả để loại bỏ bài viết nước ngoài rõ ràng
+  // (vd. Petronas/Malaysia) và bài dạng "Danh sách..."/"Các..." chung
+  // chung, ưu tiên trả về bài viết cụ thể phù hợp nhất.
+  function searchVietnamWikipediaTitle(query) {
+    const url = new URL(WIKI_API);
+    url.searchParams.set('action', 'query');
+    url.searchParams.set('list', 'search');
+    url.searchParams.set('srsearch', query);
+    url.searchParams.set('utf8', '1');
+    url.searchParams.set('format', 'json');
+    url.searchParams.set('origin', '*');
+    return fetch(url.toString())
+      .then(function (res) {
+        if (!res.ok) throw new Error('Wiki search failed');
+        return res.json();
+      })
+      .then(function (data) {
+        const results = (data.query && data.query.search) || [];
+        if (results.length > 0) {
+          for (let i = 0; i < results.length; i++) {
+            const title = results[i].title;
+            const snippet = (results[i].snippet || '').toLowerCase();
+            const lowerTitle = title.toLowerCase();
+            if (lowerTitle.includes('petronas') || snippet.includes('malaysia') || snippet.includes('kuala lumpur')) {
+              continue;
+            }
+            if (lowerTitle.startsWith('danh sách') || lowerTitle.startsWith('các ')) {
+              continue;
+            }
+            return title;
+          }
+          return results[0].title;
+        }
+        return query;
+      })
+      .catch(function () {
+        return query;
+      });
   }
 
-  function resolveAndShowSearchArticle(rawQuery) {
-    const query = (rawQuery || '').trim();
-    if (!query) return;
-    const isEn = currentGuideLang === 'en';
-    const reqId = ++searchRequestSeq;
+function resolveAndShowSearchArticle(rawQuery) {
+  const query = (rawQuery || '').trim();
+  if (!query) return;
+  const isEn = currentGuideLang === 'en';
+  const reqId = ++searchRequestSeq;
 
-    setStatus(isEn ? 'Searching the encyclopedia for “' + query + '”…' : 'Đang tìm “' + query + '” trên Bách khoa toàn thư…', null);
+  setStatus(isEn ? 'Searching the encyclopedia for “' + query + '”…' : 'Đang tìm “' + query + '” trên Bách khoa toàn thư…', null);
 
-    searchWikipediaTitle(query).then(function (title) {
-      if (reqId !== searchRequestSeq) return; // đã có lượt tìm kiếm mới hơn, bỏ kết quả cũ
-      if (!title) {
-        setStatus(
-          isEn
-            ? 'No Wikipedia article found for “' + query + '”.'
-            : 'Không tìm thấy bài viết nào cho “' + query + '” trên Wikipedia.',
-          'error'
-        );
-        return;
-      }
-      currentLocationTitle = title;
-      currentLocationSource = 'search';
+  searchVietnamWikipediaTitle(query).then(function (title) {
+    if (reqId !== searchRequestSeq) return; // đã có lượt tìm kiếm mới hơn, bỏ kết quả cũ
+    if (!title) {
       setStatus(
-        isEn ? 'Showing results for “' + title + '”' : 'Kết quả tìm kiếm cho “' + title + '”',
-        'success'
+        isEn
+          ? 'No Vietnam-related Wikipedia article found for “' + query + '”.'
+          : 'Không tìm thấy bài viết nào liên quan đến Việt Nam cho “' + query + '” trên Wikipedia.',
+        'error'
       );
-      renderLocationArticle(title, null, null, 'search');
-    });
-  }
-
-  // ===================================================================
-  // 3 & 4. Định vị thiết bị + bài viết theo vị trí (song ngữ)
-  // ===================================================================
-  let currentGuideLang = 'vn';
-  let watchId = null;
-  let lastQueriedCoords = null;
-  let lastQueryTime = 0;
-  let currentLocationTitle = null;
-  let currentLocationSource = 'geo'; // 'geo' (định vị GPS) hoặc 'search' (ô tìm kiếm)
-  let renderRequestSeq = 0;
-
-  function $(id) { return document.getElementById(id); }
-
-  function haversineKm(lat1, lon1, lat2, lon2) {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  }
-
-  function setStatus(text, kind) {
-    const el = $('guideGeoStatus');
-    if (!el) return;
-    if (!text) {
-      el.hidden = true;
-      el.textContent = '';
       return;
     }
-    el.hidden = false;
-    el.textContent = text;
-    el.className = 'guide-geo-status' + (kind ? ' is-' + kind : '');
+    currentLocationTitle = title;
+    currentLocationSource = 'search';
+    setStatus(
+      isEn ? 'Showing results for “' + title + '”' : 'Kết quả tìm kiếm cho “' + title + '”',
+      'success'
+    );
+    renderLocationArticle(title, null, null, 'search');
+  });
+}
+
+// ===================================================================
+// 3 & 4. Định vị thiết bị + bài viết theo vị trí (song ngữ)
+// ===================================================================
+let currentGuideLang = 'vn';
+let watchId = null;
+let lastQueriedCoords = null;
+let lastQueryTime = 0;
+let currentLocationTitle = null;
+let currentLocationSource = 'geo'; // 'geo' (định vị GPS) hoặc 'search' (ô tìm kiếm)
+let renderRequestSeq = 0;
+
+function $(id) { return document.getElementById(id); }
+
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function setStatus(text, kind) {
+  const el = $('guideGeoStatus');
+  if (!el) return;
+  if (!text) {
+    el.hidden = true;
+    el.textContent = '';
+    return;
   }
+  el.hidden = false;
+  el.textContent = text;
+  el.className = 'guide-geo-status' + (kind ? ' is-' + kind : '');
+}
 
-  function currentLangFromToggle() {
-    const active = document.querySelector('.lang-btn.active');
-    const txt = active && active.textContent.trim().toLowerCase();
-    return txt === 'en' ? 'en' : 'vn';
-  }
+function currentLangFromToggle() {
+  const active = document.querySelector('.lang-btn.active');
+  const txt = active && active.textContent.trim().toLowerCase();
+  return txt === 'en' ? 'en' : 'vn';
+}
 
-  function initGeo() {
-    const btn = $('guideGeoBtn');
-    const backBtn = $('guideBackBtn');
-    currentGuideLang = currentLangFromToggle();
+function initGeo() {
+  const btn = $('guideGeoBtn');
+  const backBtn = $('guideBackBtn');
+  currentGuideLang = currentLangFromToggle();
 
-    if (!btn || !('geolocation' in navigator)) {
-      if (btn) btn.disabled = true;
-      setStatus('Trình duyệt của bạn không hỗ trợ định vị.', 'error');
-      return;
-    }
-
-    btn.addEventListener('click', requestLocation);
-    if (backBtn) backBtn.addEventListener('click', showGrid);
-
-    // Đồng bộ ngôn ngữ của bài viết theo vị trí khi người dùng bấm VN/EN
-    document.querySelectorAll('.lang-btn').forEach(function (b) {
-      b.addEventListener('click', function (e) {
-        const lang = e.target.textContent.trim().toLowerCase();
-        if (lang !== 'en' && lang !== 'vn') return;
-        currentGuideLang = lang;
-        const article = $('guideLocationArticle');
-        if (currentLocationTitle && article && !article.hidden) {
-          renderLocationArticle(currentLocationTitle, lastQueriedCoords, null, currentLocationSource);
-        }
-      });
-    });
-
-    // Tự động xin quyền định vị ngay lần đầu người dùng mở tab Cẩm nang
-    let autoAsked = false;
-    document.querySelectorAll('.sh-tab[data-panel="panel-guide"]').forEach(function (tab) {
-      tab.addEventListener('click', function () {
-        if (!autoAsked) {
-          autoAsked = true;
-          requestLocation();
-        }
-      });
-    });
-
-    // Nếu người dùng mở thẳng vào tab Cẩm nang qua URL hash (#panel-guide)
-    if (window.location.hash === '#panel-guide') {
-      autoAsked = true;
-      requestLocation();
-    }
-  }
-
-  function requestLocation() {
-    const btn = $('guideGeoBtn');
+  if (!btn || !('geolocation' in navigator)) {
     if (btn) btn.disabled = true;
-    setStatus('Đang xin quyền truy cập vị trí thiết bị…', null);
-
-    if (watchId !== null) {
-      navigator.geolocation.clearWatch(watchId);
-    }
-
-    watchId = navigator.geolocation.watchPosition(onPositionSuccess, onPositionError, {
-      enableHighAccuracy: true,
-      maximumAge: 15000,
-      timeout: 15000
-    });
+    setStatus('Trình duyệt của bạn không hỗ trợ định vị.', 'error');
+    return;
   }
 
-  function onPositionSuccess(pos) {
-    const btn = $('guideGeoBtn');
-    if (btn) btn.disabled = false;
+  btn.addEventListener('click', requestLocation);
+  if (backBtn) backBtn.addEventListener('click', showGrid);
 
-    const lat = pos.coords.latitude;
-    const lon = pos.coords.longitude;
-    const now = Date.now();
-
-    if (lastQueriedCoords) {
-      const movedKm = haversineKm(lastQueriedCoords.lat, lastQueriedCoords.lon, lat, lon);
-      // Chỉ truy vấn lại Wikipedia nếu thiết bị di chuyển > 300m hoặc đã
-      // quá 60 giây kể từ lần truy vấn trước, để tránh gọi API liên tục.
-      if (movedKm < 0.3 && now - lastQueryTime < 60000) return;
-    }
-
-    lastQueriedCoords = { lat: lat, lon: lon };
-    lastQueryTime = now;
-    findNearbyLandmark(lat, lon);
-  }
-
-  function onPositionError(err) {
-    const btn = $('guideGeoBtn');
-    if (btn) btn.disabled = false;
-    let msg = 'Không thể lấy vị trí của bạn. Vui lòng thử lại.';
-    if (err && err.code === err.PERMISSION_DENIED) {
-      msg = 'Bạn đã từ chối quyền truy cập vị trí. Hãy bật lại quyền định vị trong trình duyệt để dùng tính năng này.';
-    }
-    setStatus(msg, 'error');
-  }
-
-  function findNearbyLandmark(lat, lon) {
-    setStatus('Đang tìm địa danh gần vị trí của bạn…', null);
-
-    wikiFetch(WIKI_API, {
-      action: 'query',
-      list: 'geosearch',
-      gscoord: lat + '|' + lon,
-      gsradius: 10000,
-      gslimit: 1
-    }).then(function (data) {
-      const results = (data.query && data.query.geosearch) || [];
-      if (!results.length) {
-        setStatus('Chưa tìm thấy địa danh nào trong bán kính 10km quanh vị trí hiện tại.', null);
-        return;
+  // Đồng bộ ngôn ngữ của bài viết theo vị trí khi người dùng bấm VN/EN
+  document.querySelectorAll('.lang-btn').forEach(function (b) {
+    b.addEventListener('click', function (e) {
+      const lang = e.target.textContent.trim().toLowerCase();
+      if (lang !== 'en' && lang !== 'vn') return;
+      currentGuideLang = lang;
+      const article = $('guideLocationArticle');
+      if (currentLocationTitle && article && !article.hidden) {
+        renderLocationArticle(currentLocationTitle, lastQueriedCoords, null, currentLocationSource);
       }
-      const place = results[0];
-      currentLocationTitle = place.title;
-      currentLocationSource = 'geo';
-      setStatus('Đã tìm thấy địa danh gần bạn: ' + place.title, 'success');
-      renderLocationArticle(place.title, { lat: lat, lon: lon }, place.dist, 'geo');
-    }).catch(function () {
-      setStatus('Không thể kết nối tới Wikipedia để tra cứu địa danh. Vui lòng thử lại sau.', 'error');
     });
-  }
+  });
 
-  function renderLocationArticle(title, coords, distMeters, source) {
-    const card = $('guideLocationCard');
-    const article = $('guideLocationArticle');
-    const grid = $('guideGrid');
-    const empty = $('guideEmptyState');
-    if (!card || !article || !grid) return;
-
-    const mode = source || 'geo';
-    const reqId = ++renderRequestSeq;
-
-    card.className = 'guide-location-card is-loading';
-    card.innerHTML = '<div class="guide-location-card__body"><p>' +
-      (currentGuideLang === 'en' ? 'Loading landmark information…' : 'Đang tải thông tin địa danh…') +
-      '</p></div>';
-    article.hidden = false;
-    grid.hidden = true;
-    if (empty) empty.hidden = true;
-
-    const isEn = currentGuideLang === 'en';
-    const summaryPromise = isEn ? fetchEnglishSummary(title) : fetchVietnameseSummary(title);
-
-    summaryPromise.then(function (info) {
-      if (reqId !== renderRequestSeq) return; // đã có bài khác được yêu cầu hiển thị sau đó
-
-      if (!info) {
-        card.className = 'guide-location-card is-empty';
-        card.innerHTML = '<div class="guide-location-card__body"><p>' +
-          (isEn ? 'No detailed information available for this location yet.' :
-            'Chưa có thông tin chi tiết cho địa danh này.') + '</p></div>';
-        return;
+  // Tự động xin quyền định vị ngay lần đầu người dùng mở tab Cẩm nang
+  let autoAsked = false;
+  document.querySelectorAll('.sh-tab[data-panel="panel-guide"]').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      if (!autoAsked) {
+        autoAsked = true;
+        requestLocation();
       }
-
-      card.className = 'guide-location-card';
-      const distText = typeof distMeters === 'number'
-        ? (isEn
-          ? 'About ' + Math.round(distMeters) + 'm from your current location'
-          : 'Cách vị trí hiện tại của bạn khoảng ' + Math.round(distMeters) + 'm')
-        : '';
-
-      // Bài từ ô tìm kiếm dùng đúng khung "? Bạn có biết" như lưới thẻ;
-      // bài từ định vị GPS vẫn giữ nhãn "Gần bạn" như trước.
-      const eyebrowHtml = mode === 'search'
-        ? '<span class="guide-card__badge guide-location-card__badge"><span class="guide-card__badge-mark">?</span>' +
-          (isEn ? 'Did you know' : 'Bạn có biết') + '</span>'
-        : '<span class="guide-location-card__eyebrow">' + (isEn ? 'Near you' : 'Gần bạn') + '</span>';
-
-      card.innerHTML =
-        '<div class="guide-location-card__media">' +
-        (info.image ? '<img src="' + info.image + '" alt="' + escapeHtml(info.title) + '">' : '') +
-        '</div>' +
-        '<div class="guide-location-card__body">' +
-        eyebrowHtml +
-        '<h3 class="guide-location-card__title">' + escapeHtml(info.title) + '</h3>' +
-        (distText ? '<p class="guide-location-card__dist">' + distText + '</p>' : '') +
-        '<p class="guide-location-card__extract">' + escapeHtml(info.extract) + '</p>' +
-        '<a class="guide-location-card__link" href="' + info.pageUrl + '" target="_blank" rel="noopener">' +
-        '<i data-lucide="external-link"></i>' +
-        (isEn ? 'Read more on Wikipedia' : 'Xem thêm trên Wikipedia') +
-        '</a>' +
-        '</div>';
-
-      if (window.lucide) window.lucide.createIcons({ root: card });
     });
+  });
+
+  // Nếu người dùng mở thẳng vào tab Cẩm nang qua URL hash (#panel-guide)
+  if (window.location.hash === '#panel-guide') {
+    autoAsked = true;
+    requestLocation();
+  }
+}
+
+function requestLocation() {
+  const btn = $('guideGeoBtn');
+  if (btn) btn.disabled = true;
+  setStatus('Đang xin quyền truy cập vị trí thiết bị…', null);
+
+  if (watchId !== null) {
+    navigator.geolocation.clearWatch(watchId);
   }
 
-  function fetchVietnameseSummary(title) {
-    return wikiFetch(WIKI_API, {
+  watchId = navigator.geolocation.watchPosition(onPositionSuccess, onPositionError, {
+    enableHighAccuracy: true,
+    maximumAge: 15000,
+    timeout: 15000
+  });
+}
+
+function onPositionSuccess(pos) {
+  const btn = $('guideGeoBtn');
+  if (btn) btn.disabled = false;
+
+  const lat = pos.coords.latitude;
+  const lon = pos.coords.longitude;
+  const now = Date.now();
+
+  if (lastQueriedCoords) {
+    const movedKm = haversineKm(lastQueriedCoords.lat, lastQueriedCoords.lon, lat, lon);
+    // Chỉ truy vấn lại Wikipedia nếu thiết bị di chuyển > 300m hoặc đã
+    // quá 60 giây kể từ lần truy vấn trước, để tránh gọi API liên tục.
+    if (movedKm < 0.3 && now - lastQueryTime < 60000) return;
+  }
+
+  lastQueriedCoords = { lat: lat, lon: lon };
+  lastQueryTime = now;
+  findNearbyLandmark(lat, lon);
+}
+
+function onPositionError(err) {
+  const btn = $('guideGeoBtn');
+  if (btn) btn.disabled = false;
+  let msg = 'Không thể lấy vị trí của bạn. Vui lòng thử lại.';
+  if (err && err.code === err.PERMISSION_DENIED) {
+    msg = 'Bạn đã từ chối quyền truy cập vị trí. Hãy bật lại quyền định vị trong trình duyệt để dùng tính năng này.';
+  }
+  setStatus(msg, 'error');
+}
+
+function findNearbyLandmark(lat, lon) {
+  setStatus('Đang tìm địa danh gần vị trí của bạn…', null);
+
+  wikiFetch(WIKI_API, {
+    action: 'query',
+    list: 'geosearch',
+    gscoord: lat + '|' + lon,
+    gsradius: 3000,
+    gslimit: 1
+  }).then(function (data) {
+    const results = (data.query && data.query.geosearch) || [];
+    if (!results.length) {
+      setStatus('Chưa tìm thấy địa danh nào trong bán kính 3km quanh vị trí hiện tại.', null);
+      return;
+    }
+    const place = results[0];
+    currentLocationTitle = place.title;
+    currentLocationSource = 'geo';
+    setStatus('Đã tìm thấy địa danh gần bạn: ' + place.title, 'success');
+    renderLocationArticle(place.title, { lat: lat, lon: lon }, place.dist, 'geo');
+  }).catch(function () {
+    setStatus('Không thể kết nối tới Wikipedia để tra cứu địa danh. Vui lòng thử lại sau.', 'error');
+  });
+}
+
+function renderLocationArticle(title, coords, distMeters, source) {
+  const card = $('guideLocationCard');
+  const article = $('guideLocationArticle');
+  const grid = $('guideGrid');
+  const empty = $('guideEmptyState');
+  if (!card || !article || !grid) return;
+
+  const mode = source || 'geo';
+  const reqId = ++renderRequestSeq;
+
+  card.className = 'guide-location-card is-loading';
+  card.innerHTML = '<div class="guide-location-card__body"><p>' +
+    (currentGuideLang === 'en' ? 'Loading landmark information…' : 'Đang tải thông tin địa danh…') +
+    '</p></div>';
+  article.hidden = false;
+  grid.hidden = true;
+  if (empty) empty.hidden = true;
+
+  const isEn = currentGuideLang === 'en';
+  const summaryPromise = isEn ? fetchEnglishSummary(title) : fetchVietnameseSummary(title);
+
+  summaryPromise.then(function (info) {
+    if (reqId !== renderRequestSeq) return; // đã có bài khác được yêu cầu hiển thị sau đó
+
+    if (!info) {
+      card.className = 'guide-location-card is-empty';
+      card.innerHTML = '<div class="guide-location-card__body"><p>' +
+        (isEn ? 'No detailed information available for this location yet.' :
+          'Chưa có thông tin chi tiết cho địa danh này.') + '</p></div>';
+      return;
+    }
+
+    card.className = 'guide-location-card';
+    const distText = typeof distMeters === 'number'
+      ? (isEn
+        ? 'About ' + Math.round(distMeters) + 'm from your current location'
+        : 'Cách vị trí hiện tại của bạn khoảng ' + Math.round(distMeters) + 'm')
+      : '';
+
+    // Bài từ ô tìm kiếm dùng đúng khung "? Bạn có biết" như lưới thẻ;
+    // bài từ định vị GPS vẫn giữ nhãn "Gần bạn" như trước.
+    const eyebrowHtml = mode === 'search'
+      ? '<span class="guide-card__badge guide-location-card__badge"><span class="guide-card__badge-mark">?</span>' +
+      (isEn ? 'Did you know' : 'Bạn có biết') + '</span>'
+      : '<span class="guide-location-card__eyebrow">' + (isEn ? 'Near you' : 'Gần bạn') + '</span>';
+
+    card.innerHTML =
+      '<div class="guide-location-card__media">' +
+      (info.image ? '<img src="' + info.image + '" alt="' + escapeHtml(info.title) + '">' : '') +
+      '</div>' +
+      '<div class="guide-location-card__body">' +
+      eyebrowHtml +
+      '<h3 class="guide-location-card__title">' + escapeHtml(info.title) + '</h3>' +
+      (distText ? '<p class="guide-location-card__dist">' + distText + '</p>' : '') +
+      '<p class="guide-location-card__extract">' + escapeHtml(info.extract) + '</p>' +
+      '<a class="guide-location-card__link" href="' + info.pageUrl + '" target="_blank" rel="noopener">' +
+      '<i data-lucide="external-link"></i>' +
+      (isEn ? 'Read more on Wikipedia' : 'Xem thêm trên Wikipedia') +
+      '</a>' +
+      '</div>';
+
+    if (window.lucide) window.lucide.createIcons({ root: card });
+  });
+}
+
+const GOOGLE_SEARCH_API_KEY = 'THAY_BANG_API_KEY_CUA_BAN';
+const GOOGLE_SEARCH_CX = 'THAY_BANG_CX_ID_CUA_BAN';
+
+function fetchExternalSummary(query) {
+  const url = new URL('https://www.googleapis.com/customsearch/v1');
+  url.searchParams.set('key', GOOGLE_SEARCH_API_KEY);
+  url.searchParams.set('cx', GOOGLE_SEARCH_CX);
+  url.searchParams.set('q', query + ' du lịch Việt Nam');
+  return fetch(url.toString()).then(function (res) {
+    if (!res.ok) throw new Error('Google Search API error');
+    return res.json();
+  }).then(function (data) {
+    const items = data.items || [];
+    if (items.length > 0) {
+      const firstItem = items[0];
+      let imageUrl = null;
+      if (firstItem.pagemap && firstItem.pagemap.cse_image && firstItem.pagemap.cse_image.length > 0) {
+        imageUrl = firstItem.pagemap.cse_image[0].src;
+      }
+      return {
+        title: firstItem.title.replace(/ - .*/, ''),
+        extract: firstItem.snippet || 'Xem thêm chi tiết tại liên kết nguồn đính kèm.',
+        image: imageUrl,
+        pageUrl: firstItem.link,
+        qid: null
+      };
+    }
+    return null;
+  }).catch(function () { return null; });
+}
+
+function fetchVietnameseSummary(title) {
+  return wikiFetch(WIKI_API, {
+    action: 'query',
+    titles: title,
+    prop: 'extracts|pageimages|info|pageprops',
+    exintro: 1,
+    explaintext: 1,
+    piprop: 'thumbnail',
+    pithumbsize: 800,
+    inprop: 'url',
+    ppprop: 'wikibase_item',
+    redirects: 1
+  }).then(function (data) {
+    const pages = (data.query && data.query.pages) || [];
+    const page = pages[0];
+
+    // Nếu Wikipedia không có dữ liệu, chuyển sang tìm kiếm ngoài (Google/Du lịch)
+    if (!page || page.missing) {
+      return fetchExternalSummary(title);
+    }
+
+    const info = {
+      title: page.title,
+      extract: (page.extract || '').trim() || 'Chưa có mô tả chi tiết cho địa danh này trên Wikipedia.',
+      image: page.thumbnail && page.thumbnail.source,
+      pageUrl: page.fullurl || ('https://vi.wikipedia.org/wiki/' + encodeURIComponent(title.replace(/ /g, '_'))),
+      qid: page.pageprops && page.pageprops.wikibase_item
+    };
+
+    if (info.image) return info;
+
+    return findSupplementalImage(page.title).then(function (imgUrl) {
+      info.image = imgUrl || null;
+      return info;
+    });
+  }).catch(function () {
+    // Lỗi kết nối Wikipedia cũng sẽ kích hoạt tìm kiếm Google
+    return fetchExternalSummary(title);
+  });
+}
+
+// Lấy bản tiếng Anh thông qua interwiki langlinks của chính bài tiếng
+// Việt (đảm bảo cùng một địa danh); nếu bài chưa có bản EN, dùng lại
+// nội dung tiếng Việt gốc để không bỏ trống bài viết.
+function fetchEnglishSummary(viTitle) {
+  return wikiFetch(WIKI_API, {
+    action: 'query',
+    titles: viTitle,
+    prop: 'langlinks',
+    lllang: 'en',
+    redirects: 1
+  }).then(function (data) {
+    const pages = (data.query && data.query.pages) || [];
+    const page = pages[0];
+    const enTitle = page && page.langlinks && page.langlinks[0] && page.langlinks[0].title;
+
+    if (!enTitle) return fetchVietnameseSummary(viTitle);
+
+    return wikiFetch(WIKI_API_EN, {
       action: 'query',
-      titles: title,
+      titles: enTitle,
       prop: 'extracts|pageimages|info',
       exintro: 1,
       explaintext: 1,
@@ -571,91 +700,41 @@
       pithumbsize: 800,
       inprop: 'url',
       redirects: 1
-    }).then(function (data) {
-      const pages = (data.query && data.query.pages) || [];
-      const page = pages[0];
-      if (!page || page.missing) return null;
+    }).then(function (enData) {
+      const enPages = (enData.query && enData.query.pages) || [];
+      const enPage = enPages[0];
+      if (!enPage || enPage.missing) return fetchVietnameseSummary(viTitle);
 
       const info = {
-        title: page.title,
-        extract: (page.extract || '').trim() || 'Chưa có mô tả chi tiết cho địa danh này trên Wikipedia.',
-        image: page.thumbnail && page.thumbnail.source,
-        pageUrl: page.fullurl || ('https://vi.wikipedia.org/wiki/' + encodeURIComponent(title.replace(/ /g, '_')))
+        title: enPage.title,
+        extract: (enPage.extract || '').trim() || 'No detailed description available yet.',
+        image: enPage.thumbnail && enPage.thumbnail.source,
+        pageUrl: enPage.fullurl || ('https://en.wikipedia.org/wiki/' + encodeURIComponent(enTitle.replace(/ /g, '_')))
       };
 
       if (info.image) return info;
 
-      // Trang Wikipedia không có ảnh sẵn -> tìm thêm trên Internet (Commons/
-      // Openverse), có đối chiếu từ khóa trước khi chấp nhận.
-      return findSupplementalImage(page.title).then(function (imgUrl) {
+      return findSupplementalImage(enPage.title).then(function (imgUrl) {
         info.image = imgUrl || null;
         return info;
       });
-    }).catch(function () { return null; });
-  }
+    });
+  }).catch(function () { return fetchVietnameseSummary(viTitle); });
+}
 
-  // Lấy bản tiếng Anh thông qua interwiki langlinks của chính bài tiếng
-  // Việt (đảm bảo cùng một địa danh); nếu bài chưa có bản EN, dùng lại
-  // nội dung tiếng Việt gốc để không bỏ trống bài viết.
-  function fetchEnglishSummary(viTitle) {
-    return wikiFetch(WIKI_API, {
-      action: 'query',
-      titles: viTitle,
-      prop: 'langlinks',
-      lllang: 'en',
-      redirects: 1
-    }).then(function (data) {
-      const pages = (data.query && data.query.pages) || [];
-      const page = pages[0];
-      const enTitle = page && page.langlinks && page.langlinks[0] && page.langlinks[0].title;
+function showGrid() {
+  const article = $('guideLocationArticle');
+  const grid = $('guideGrid');
+  if (article) article.hidden = true;
+  if (grid) grid.hidden = false;
+  currentLocationTitle = null;
+  currentLocationSource = 'geo';
+}
 
-      if (!enTitle) return fetchVietnameseSummary(viTitle);
-
-      return wikiFetch(WIKI_API_EN, {
-        action: 'query',
-        titles: enTitle,
-        prop: 'extracts|pageimages|info',
-        exintro: 1,
-        explaintext: 1,
-        piprop: 'thumbnail',
-        pithumbsize: 800,
-        inprop: 'url',
-        redirects: 1
-      }).then(function (enData) {
-        const enPages = (enData.query && enData.query.pages) || [];
-        const enPage = enPages[0];
-        if (!enPage || enPage.missing) return fetchVietnameseSummary(viTitle);
-
-        const info = {
-          title: enPage.title,
-          extract: (enPage.extract || '').trim() || 'No detailed description available yet.',
-          image: enPage.thumbnail && enPage.thumbnail.source,
-          pageUrl: enPage.fullurl || ('https://en.wikipedia.org/wiki/' + encodeURIComponent(enTitle.replace(/ /g, '_')))
-        };
-
-        if (info.image) return info;
-
-        return findSupplementalImage(enPage.title).then(function (imgUrl) {
-          info.image = imgUrl || null;
-          return info;
-        });
-      });
-    }).catch(function () { return fetchVietnameseSummary(viTitle); });
-  }
-
-  function showGrid() {
-    const article = $('guideLocationArticle');
-    const grid = $('guideGrid');
-    if (article) article.hidden = true;
-    if (grid) grid.hidden = false;
-    currentLocationTitle = null;
-    currentLocationSource = 'geo';
-  }
-
-  document.addEventListener('DOMContentLoaded', function () {
-    if (!document.getElementById('panel-guide')) return;
-    loadGridImages();
-    initSearch();
-    initGeo();
-  });
-})();
+document.addEventListener('DOMContentLoaded', function () {
+  if (!document.getElementById('panel-guide')) return;
+  loadGridImages();
+  initSearch();
+  initGeo();
+});
+}) ();

@@ -9,6 +9,22 @@
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1) !important;
   padding: 10px;
   width: 320px !important;
+  max-width: calc(100vw - 24px) !important;
+}
+
+@media (max-width: 768px) {
+  .flatpickr-calendar.open {
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+  }
+}
+
+.flatpickr-days,
+.dayContainer {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
 }
 
 .flatpickr-months {
