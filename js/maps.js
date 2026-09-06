@@ -187,7 +187,7 @@
     ISLANDS.forEach(function (isl) {
       L.circle(isl.center, {
         radius: isl.radius,
-        color: '#e11d2f',
+        color: getCssVar('--vn-primary', '#0ea5e9'),
         weight: 1.5,
         dashArray: '4 6',
         fillOpacity: 0.04
@@ -223,7 +223,13 @@
       maxBoundsViscosity: 1.0
     }).setView(VN_CENTER, VN_DEFAULT_ZOOM);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // Lưu ý: KHÔNG dùng dạng {s}.tile.openstreetmap.org (a/b/c...) nữa — OSM
+    // đã chính thức khai tử cách chia subdomain này (tile server giờ dùng
+    // HTTP/2 nên không cần nhiều subdomain để tăng số kết nối song song).
+    // Domain con a/b/c hiện hoạt động chập chờn tuỳ mạng/trình duyệt của
+    // từng người dùng — dùng đúng 1 domain tile.openstreetmap.org duy nhất
+    // theo khuyến nghị chính thức để tải ổn định cho mọi thiết bị.
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'
     }).addTo(map);
@@ -485,7 +491,7 @@
     return '&viewbox=' + (lon - delta) + ',' + (lat + delta) + ',' + (lon + delta) + ',' + (lat - delta) + '&bounded=0';
   }
 
-  function doSearch(query, isFallback) {
+  function doSearch(query) {
     if (searchAbort) searchAbort.abort();
     searchAbort = ('AbortController' in window) ? new AbortController() : null;
 
@@ -494,27 +500,7 @@
 
     fetch(url, { signal: searchAbort ? searchAbort.signal : undefined })
       .then(function (r) { return r.json(); })
-      .then(function (list) { 
-        if (list.length === 0 && !isFallback) {
-          // Thử loại bỏ các tiền tố miêu tả thường làm API Nominatim không tìm được (do khác biệt dữ liệu OSM)
-          var prefixes = /^(Khu phố ẩm thực|Khu phố|Phố ẩm thực|Phố đi bộ|Khu du lịch sinh thái|Khu du lịch|Khu di tích|Làng nghề mỹ nghệ|Làng nghề dệt|Làng nghề|Làng mỹ nghệ|Làng dệt|Làng gốm|Làng|Bảo tàng|Công viên|Bãi biển|Biển|Đền|Miếu|Lăng|Chùa|Nhà thờ|Chợ nổi|Chợ đêm|Chợ|Khu|Vườn quốc gia|Vườn trái cây|Quảng trường|Đảo|Hòn|Núi|Thác|Hồ|Cầu|Bến)\s+/i;
-          var parts = query.split(',');
-          if (parts.length > 0) {
-            var newFirst = parts[0].replace(prefixes, '').trim();
-            if (newFirst !== parts[0].trim() && newFirst.length > 0) {
-              parts[0] = newFirst;
-              doSearch(parts.join(','), true);
-              return;
-            } else if (parts.length > 1 && parts[0].trim().length > 0) {
-              // Fallback cấp 2: Nếu không có tiền tố để bỏ, hoặc bỏ rồi vẫn sai,
-              // thử bỏ luôn cụm đầu tiên và chỉ tìm theo cụm thứ 2 trở đi để ít nhất map đưa người dùng tới đúng Tỉnh/Thành/Quận
-              doSearch(parts.slice(1).join(',').trim(), true);
-              return;
-            }
-          }
-        }
-        renderResults(sortResults(list), query); 
-      })
+      .then(function (list) { renderResults(sortResults(list), query); })
       .catch(function (err) {
         if (err && err.name === 'AbortError') return;
         els.searchResults.innerHTML = '<div class="vnmap-search-empty">Có lỗi khi tìm kiếm, vui lòng thử lại.</div>';
