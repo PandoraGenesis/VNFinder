@@ -665,403 +665,12 @@ checkWeatherAlert();
 // Dữ liệu chi tiết theo từng điểm đến cấp 2 (ITINERARY_DATA, PROVINCE_FALLBACK,
 // GENERIC_FALLBACK) được nạp từ js/itinerary-data.js, load trước file này.
 
-/* ---------------------------------------------------------------------------
-   CẤU HÌNH NGUỒN ẢNH (tuỳ chọn) — Google Programmable Search Engine
-   ---------------------------------------------------------------------------
-   Đây là nguồn cho kết quả ảnh SÁT NGHĨA NHẤT với từ khoá (đúng như ảnh Google
-   Hình ảnh trả về), nhưng KHÔNG có khoá dùng chung sẵn trong app vì đây là dịch
-   vụ gắn với từng tài khoản Google Cloud (miễn phí 100 lượt/ngày, sau đó tính phí).
-   Cách lấy khoá (khoảng 5 phút, không cần thẻ tín dụng cho mức miễn phí):
-     1) Vào https://programmablesearchengine.google.com/ -> "Thêm" một công cụ tìm
-        kiếm mới -> bật "Tìm kiếm trên toàn Web" -> vào Settings bật "Image search"
-        (Tìm kiếm hình ảnh) -> copy mã "Search engine ID" (đây là giá trị `cx`).
-     2) Vào https://console.cloud.google.com/apis/library/customsearch.googleapis.com
-        -> bật "Custom Search API" -> mục Credentials -> "Create credentials" ->
-        "API key" -> copy khoá đó (đây là giá trị `googleApiKey`).
-   Dán 2 giá trị vào bên dưới để kích hoạt. Để trống ('') thì app tự động BỎ QUA
-   bước này và dùng ngay các nguồn ảnh miễn phí, không cần khoá (Openverse,
-   Wikimedia Commons, Wikipedia) — app vẫn chạy bình thường.
-
-   LƯU Ý BẢO MẬT: đây là file JS chạy thẳng trên trình duyệt, nên bất kỳ khoá nào
-   dán vào đây đều LỘ CÔNG KHAI cho ai xem mã nguồn trang (View Source/DevTools).
-   Với API key có giới hạn "HTTP referrer" theo đúng domain của bạn (thiết lập
-   trong Google Cloud Console) thì mức rủi ro chỉ là người khác dùng ké hạn mức
-   miễn phí của bạn — vẫn nên bật giới hạn referrer này. Nếu triển khai cho nhiều
-   người dùng công khai, cách an toàn hơn là đặt khoá ở một API trung gian phía
-   server (proxy) rồi gọi qua đó thay vì gọi thẳng Google từ trình duyệt.
---------------------------------------------------------------------------- */
-const IMAGE_SOURCE_CONFIG = {
-  googleApiKey: '', // <- dán API key vào đây để bật tìm ảnh qua Google
-  googleCx: ''       // <- dán Search engine ID (cx) vào đây để bật tìm ảnh qua Google
-};
-
-// Tách từ khóa thành các "token" có nghĩa (bỏ từ quá ngắn/hư từ) để chấm điểm độ
-// liên quan giữa tiêu đề/trang ảnh trả về và từ khóa gốc — dùng chung cho MỌI nguồn
-// ảnh bên dưới (Google, Openverse, Commons, Wikipedia) để lọc kết quả lạc đề như nhau.
-const IMG_STOP_WORDS = new Set(['việt', 'nam', 'tỉnh', 'thành', 'phố', 'huyện', 'thị', 'xã', 'quận']);
-function tokenize(q) {
-  return q
-    .toLowerCase()
-    .normalize('NFC')
-    .split(/[\s,]+/)
-    .filter(w => w.length >= 3 && !IMG_STOP_WORDS.has(w));
-}
-function titleRelevanceScore(title, tokens) {
-  if (!tokens.length) return 0;
-  const t = (title || '').toLowerCase().normalize('NFC');
-  return tokens.reduce((score, tok) => score + (t.includes(tok) ? 1 : 0), 0);
-}
-
-// Tên/tiêu đề file gợi ý đây là tài liệu lưu trữ, văn bản hành chính, bản scan báo
-// cũ... (rất hay bị Commons trả về nhầm vì công cụ tìm kiếm của Commons search CẢ
-// nội dung OCR bên trong file — nên một bản scan biên bản họp thời Pháp thuộc vẫn
-// có thể "khớp" với từ khóa món ăn/địa danh nếu văn bản đó có nhắc tới từ đó ở đâu đó).
-const DOCUMENT_LIKE_TITLE = /discours|session|rapport|bulletin|compte.?rendu|proc[eè]s.?verbal|d[eé]cret|arr[eê]t[eé]|journal officiel|chambre consultative|resolution|r[eé]solution|circulaire|convention|trait[eé]|indochine fran[cç]aise.*\d{4}|tonkin.*\d{4}|annam.*\d{4}|nh[àa]\s*xu[aấ]t\s*b[aả]n|\bnxb\b|t[uủ]{1,2}\s*s[aá]ch|th[uư]\s*x[aã]|[aấ]n\s*h[aà]nh|t[aá]i\s*b[aả]n|in\s*l[aầ]n\s*th[uứ]|di[eễ]n\s*ngh[iĩ]a|h[oồ]i\s*th[uứ]|to[aà]n\s*th[uư]|ch[iía]nh\s*s[uử]|d[iị]ch\s*gi[aả]|bi[eê]n\s*kh[aả]o|kh[aả]o\s*c[uứ]u|ni[eê]n\s*gi[aá]m|k[yỷ]\s*y[eế]u|v[aă]n\s*kh[oố]|th[uư]\s*vi[eệ]n\s*qu[oố]c\s*gia|microfilm|photocopy|b[aả]n\s*scan|scan(?:ned)?[\s_-]?(?:page|doc|book)/i;
-
-// Ảnh có phải "trông giống trang sách/tài liệu scan" hay không, dựa trên tỉ lệ khung
-// hình — bổ sung cho bộ lọc theo TÊN FILE ở trên (vì nhiều bản scan sách/tạp chí cũ
-// không có tên file gợi ý rõ ràng, nhưng luôn có tỉ lệ gần khổ giấy A4/A5 dọc, khác
-// hẳn ảnh chụp món ăn/địa danh thực tế thường vuông hoặc ngang).
-function looksLikeScannedPage(width, height) {
-  if (!width || !height) return false;
-  const ratio = height / width;
-  return ratio >= 1.32 && width <= 1600; // gần khổ giấy dọc (A4 ≈ 1.41) và không phải ảnh chụp độ phân giải cao
-}
-
-async function searchWiki(q, lang) {
-  try {
-    const url = `https://${lang}.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q)}&gsrlimit=5&prop=pageimages&piprop=thumbnail|original&pithumbsize=800&format=json&origin=*`;
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data.query && data.query.pages) {
-      const pages = Object.values(data.query.pages).filter(page => {
-        if (!page || !(page.thumbnail || page.original)) return false;
-        if (DOCUMENT_LIKE_TITLE.test((page.title || '').toLowerCase())) return false;
-        const thumb = page.thumbnail;
-        if (thumb && looksLikeScannedPage(thumb.width, thumb.height)) return false;
-        return true;
-      });
-      if (pages.length) {
-        // Ưu tiên trang có tiêu đề chứa từ khóa tìm kiếm (khớp thật). SỬA LỖI QUAN
-        // TRỌNG: trước đây khi KHÔNG trang nào khớp tiêu đề (score = 0 cho tất cả),
-        // code vẫn cứ lấy đại kết quả xếp hạng đầu của full-text search (pages[0]) —
-        // đây chính là nguyên nhân các trang hoàn toàn không liên quan (vd. một
-        // cuốn sách/tài liệu cũ chỉ tình cờ được xếp hạng cao) vẫn bị hiển thị làm
-        // ảnh minh hoạ. Giờ nếu không có trang nào khớp, trả về null để hàm gọi
-        // chuyển sang thử nguồn ảnh khác hoặc biến thể từ khóa khác, thay vì liều
-        // lĩnh hiển thị một ảnh sai hoàn toàn.
-        const tokens = tokenize(q);
-        const scored = pages
-          .map(page => ({ page, score: titleRelevanceScore(page.title, tokens) }))
-          .sort((a, b) => b.score - a.score);
-        if (scored[0].score > 0) {
-          const best = scored[0].page;
-          if (best.thumbnail) return best.thumbnail.source;
-          if (best.original) return best.original.source;
-        }
-      }
-    }
-  } catch (e) {
-    console.error(e);
-  }
-  return null;
-}
-
-function isUsablePhoto(page) {
-  if (!page || !page.imageinfo || !page.imageinfo[0]) return false;
-  const info = page.imageinfo[0];
-  const urlStr = ((info.thumburl || info.url) || '').toLowerCase();
-  // Chỉ nhận file ảnh chụp thực tế — loại PDF/DJVU/TIFF/SVG (thường là văn bản scan,
-  // bản đồ, sơ đồ kỹ thuật... không phải ảnh minh hoạ món ăn/địa danh).
-  if (!/\.(jpe?g|png|webp)(?:\?|$)/.test(urlStr)) return false;
-  const title = (page.title || '').toLowerCase();
-  if (DOCUMENT_LIKE_TITLE.test(title)) return false;
-  if (looksLikeScannedPage(info.thumbwidth, info.thumbheight)) return false;
-  return true;
-}
-
-// Wikimedia Commons: kho ảnh chụp thực tế lớn hơn nhiều so với chỉ tìm bài viết
-// Wikipedia — tăng đáng kể khả năng tìm được ảnh đúng cho các món ăn/địa danh ít
-// nổi tiếng mà Wikipedia không có hẳn một bài viết riêng.
-async function searchCommons(q, limit) {
-  try {
-    limit = limit || 1;
-    // Luôn xin nhiều hơn số cần dùng để còn dư mà lọc bỏ file không phù hợp.
-    const fetchLimit = Math.max(limit, 8);
-    const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q)}&gsrnamespace=6&gsrlimit=${fetchLimit}&prop=imageinfo&iiprop=url&iiurlwidth=800&format=json&origin=*`;
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data.query && data.query.pages) {
-      const pages = Object.values(data.query.pages).filter(isUsablePhoto);
-      if (pages.length) {
-        // Ưu tiên lọc theo tên file có chứa từ khóa (khớp thật) trước, chỉ ngẫu
-        // nhiên hoá TRONG nhóm đã khớp để vẫn có sự đa dạng giữa các thẻ — tránh
-        // chọn ngẫu nhiên trong TOÀN BỘ kết quả full-text (bắt cả mô tả/OCR trong
-        // file) vốn là nguyên nhân chính gây ảnh sai/lệch chủ đề trước đây.
-        const tokens = tokenize(q);
-        const relevant = pages.filter(p => titleRelevanceScore(p.title, tokens) > 0);
-        // SỬA LỖI QUAN TRỌNG: trước đây khi KHÔNG file nào khớp tên/tiêu đề, code vẫn
-        // random trong TOÀN BỘ kết quả full-text (biến `pages` chưa lọc theo độ liên
-        // quan) — nghĩa là có thể chọn ngẫu nhiên bất kỳ file nào chỉ tình cờ được xếp
-        // hạng cao trong tìm kiếm toàn văn (kể cả một cuốn sách quét, ảnh không liên
-        // quan...). Giờ nếu không có file nào thật sự khớp, trả về null để chuyển
-        // sang thử nguồn/từ khóa khác thay vì hiển thị một ảnh sai hoàn toàn.
-        if (!relevant.length) return null;
-        const pick = relevant[Math.floor(Math.random() * relevant.length)];
-        return pick.imageinfo[0].thumburl || pick.imageinfo[0].url;
-      }
-    }
-  } catch (e) {
-    console.error(e);
-  }
-  return null;
-}
-
-// Openverse (openverse.org): công cụ tìm kiếm ảnh Creative Commons tổng hợp từ
-// Flickr, bảo tàng, kho ảnh mở... — nguồn ẢNH CHỤP THỰC TẾ rộng hơn nhiều so với
-// Wikimedia đơn thuần, KHÔNG cần đăng ký khoá API, giúp mở rộng khả năng tìm đúng
-// ảnh cho các món ăn/địa danh nhỏ, ít được viết bài trên Wikipedia/Commons.
-async function searchOpenverse(q, limit) {
-  try {
-    limit = limit || 6;
-    const url = `https://api.openverse.org/v1/images/?q=${encodeURIComponent(q)}&page_size=${limit}&mature=false`;
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const data = await res.json();
-    const results = (data.results || [])
-      .filter(r => (r.url || r.thumbnail))
-      .filter(r => !DOCUMENT_LIKE_TITLE.test((r.title || '').toLowerCase()))
-      .filter(r => !looksLikeScannedPage(r.width, r.height));
-    if (!results.length) return null;
-    const tokens = tokenize(q);
-    const scored = results
-      .map(r => ({ r, score: titleRelevanceScore(r.title, tokens) }))
-      .sort((a, b) => b.score - a.score);
-    // SỬA LỖI QUAN TRỌNG: trước đây khi không kết quả nào khớp tiêu đề, code vẫn lấy
-    // đại results[0] (kết quả xếp hạng đầu của Openverse cho riêng biến thể từ khóa
-    // này) — dễ ra ảnh hoàn toàn lạc đề (ảnh nghệ thuật, hoạ tiết, bìa sách...) như
-    // các ảnh trừu tượng màu đỏ/mận trong ảnh chụp màn hình người dùng gửi. Giờ trả
-    // về null để chuyển sang nguồn/từ khóa tiếp theo.
-    if (scored[0].score === 0) return null;
-    const best = scored[0].r;
-    return best.url || best.thumbnail;
-  } catch (e) {
-    console.error(e);
-  }
-  return null;
-}
-
-// Google Programmable Search Engine (Custom Search JSON API), chế độ tìm ảnh —
-// nguồn cho kết quả SÁT NGHĨA NHẤT với từ khoá, tương đương Google Hình ảnh, vì
-// chỉ mục ảnh của Google bao phủ gần như toàn bộ web (blog ẩm thực, báo du lịch,
-// review quán ăn...). Chỉ chạy khi đã cấu hình khoá ở IMAGE_SOURCE_CONFIG phía trên.
-async function searchGoogleImages(q, limit) {
-  if (!IMAGE_SOURCE_CONFIG.googleApiKey || !IMAGE_SOURCE_CONFIG.googleCx) return null;
-  try {
-    limit = limit || 6;
-    const url = `https://www.googleapis.com/customsearch/v1?key=${encodeURIComponent(IMAGE_SOURCE_CONFIG.googleApiKey)}&cx=${encodeURIComponent(IMAGE_SOURCE_CONFIG.googleCx)}&searchType=image&safe=active&num=${limit}&q=${encodeURIComponent(q)}`;
-    const res = await fetch(url);
-    if (!res.ok) return null; // vd. sai khoá, hết hạn mức miễn phí trong ngày...
-    const data = await res.json();
-    const items = (data.items || [])
-      .filter(it => it.link)
-      .filter(it => !DOCUMENT_LIKE_TITLE.test(`${it.title || ''}`.toLowerCase()));
-    if (!items.length) return null;
-    const tokens = tokenize(q);
-    const scored = items
-      .map(it => ({ it, score: titleRelevanceScore(`${it.title || ''} ${it.snippet || ''}`, tokens) }))
-      .sort((a, b) => b.score - a.score);
-    // Cùng nguyên tắc sửa lỗi như các nguồn ảnh khác: không khớp tiêu đề/mô tả nào
-    // thì trả về null thay vì liều lĩnh lấy items[0].
-    if (scored[0].score === 0) return null;
-    const best = scored[0].it;
-    return best.link;
-  } catch (e) {
-    console.error(e);
-  }
-  return null;
-}
-
-// Cạo ảnh từ Google Images qua proxy AllOrigins (giải pháp thay thế khi không có API key)
-async function searchGoogleImagesScrape(q) {
-  try {
-    const url = `https://api.allorigins.win/get?url=${encodeURIComponent('https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(q))}`;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2500); // Giới hạn timeout 2.5s tránh treo
-    const res = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeoutId);
-    if (!res.ok) return null;
-    const data = await res.json();
-    const html = data.contents;
-    // Tìm các link ảnh thumbnail của Google (thường bắt đầu bằng https://encrypted-tbn0.gstatic.com/images?q=tbn:)
-    const matches = [...html.matchAll(/src="(https:\/\/encrypted-tbn0\.gstatic\.com\/images\?q=tbn:[^"]+)"/g)];
-    if (matches.length > 0) {
-      return matches[0][1];
-    }
-  } catch (e) {
-    console.error(e);
-  }
-  return null;
-}
-
-async function searchBingImagesScrape(q) {
-  try {
-    const url = `https://api.allorigins.win/get?url=${encodeURIComponent('https://www.bing.com/images/search?q=' + encodeURIComponent(q))}`;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2500); 
-    const res = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeoutId);
-    if (!res.ok) return null;
-    const data = await res.json();
-    const html = data.contents;
-    const matches = [...html.matchAll(/murl&quot;:&quot;(https:\/\/[^&]+)&quot;/g)];
-    if (matches.length > 0) {
-      return matches[0][1];
-    }
-  } catch (e) {
-    console.error(e);
-  }
-  return null;
-}
-
-async function searchYahooImagesScrape(q) {
-  try {
-    const url = `https://api.allorigins.win/get?url=${encodeURIComponent('https://images.search.yahoo.com/search/images?p=' + encodeURIComponent(q))}`;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2500); 
-    const res = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeoutId);
-    if (!res.ok) return null;
-    const data = await res.json();
-    const html = data.contents;
-    const matches = [...html.matchAll(/src='(https:\/\/tse[0-9]\.mm\.bing\.net[^']+)'/g)];
-    if (matches.length > 0) {
-      return matches[0][1];
-    }
-  } catch (e) {
-    console.error(e);
-  }
-  return null;
-}
-
-// Thử lần lượt TẤT CẢ nguồn ảnh cho một biến thể từ khoá cụ thể, theo thứ tự ưu
-// tiên: Google API -> Bing Scrape -> Yahoo Scrape -> Google Scrape -> Openverse -> Wikimedia Commons -> Wikipedia.
-async function trySourcesForQuery(q) {
-  let r = await searchGoogleImages(q, 6);
-  if (r) return r;
-  r = await searchBingImagesScrape(q);
-  if (r) return r;
-  r = await searchYahooImagesScrape(q);
-  if (r) return r;
-  r = await searchGoogleImagesScrape(q);
-  if (r) return r;
-  r = await searchOpenverse(q, 6);
-  if (r) return r;
-  r = await searchCommons(q, 3);
-  if (r) return r;
-  r = await searchWiki(q, 'vi');
-  if (r) return r;
-  return null;
-}
-
-const IMAGE_PROMISE_CACHE = {};
-
-function getMappedSearchQuery(query) {
-  const q = query.toLowerCase();
-  if (q.includes('phở')) return 'Phở';
-  if (q.includes('cà phê') || q.includes('cafe')) return 'Vietnamese iced coffee';
-  if (q.includes('cơm')) return 'Cơm tấm';
-  if (q.includes('bún')) return 'Bún bò Huế'; // mượn tạm ảnh bún bò cho các món bún
-  if (q.includes('hủ tiếu')) return 'Hủ tiếu';
-  if (q.includes('ốc') || q.includes('hải sản') || q.includes('nướng') || q.includes('lẩu')) return 'Seafood';
-  if (q.includes('cút lộn') || q.includes('hột vịt lộn') || q.includes('ăn vặt')) return 'Balut (food)';
-  if (q.includes('đêm') || q.includes('bùi viện') || q.includes('phố ẩm thực')) return 'Bùi Viện';
-  if (q.includes('phố đi bộ')) return 'Nguyễn Huệ (đường)';
-  if (q.includes('bánh mì') || q.includes('bánh mỳ')) return 'Bánh mì';
-  if (q.includes('chợ nổi') || q.includes('cần thơ')) return 'Chợ nổi Cái Răng';
-  if (q.includes('nhà thờ') || q.includes('đức bà')) return 'Nhà thờ Đức Bà Sài Gòn';
-  if (q.includes('dinh độc lập')) return 'Dinh Độc Lập';
-  if (q.includes('chợ bến thành')) return 'Chợ Bến Thành';
-  return null;
-}
-
-async function fetchDestImage(query, options) {
-  options = options || {};
-  const kind = options.kind || 'visit'; // 'food' | 'visit' | 'nightlifeVisit'
-  const fallbackQuery = (options.fallbackQuery || '').trim(); // tên tỉnh/thành của điểm đến
-
-  const cacheKey = `${query}_${fallbackQuery}_${kind}`;
-  if (IMAGE_PROMISE_CACHE[cacheKey]) {
-    return IMAGE_PROMISE_CACHE[cacheKey];
-  }
-
-  const fetchPromise = (async () => {
-    // Nếu có từ khóa ánh xạ chung chung (để dễ tìm hơn trên Wikipedia tiếng Anh/Việt)
-    const mappedQuery = getMappedSearchQuery(query);
-    if (mappedQuery) {
-      let r = await searchWiki(mappedQuery, 'vi');
-      if (r) return r;
-      r = await searchWiki(mappedQuery, 'en');
-      if (r) return r;
-      r = await searchCommons(mappedQuery, 3);
-      if (r) return r;
-    }
-
-    const queryVariants = [];
-
-    if (kind === 'food' || kind === 'nightlifeVisit') {
-      // Đối với món ăn, ưu tiên tìm đúng tên món ăn trước, vì gắn tên tỉnh vào dễ làm Wikipedia 
-      // trả về ảnh phong cảnh của tỉnh đó (vd: "Phở bò Hồ Chí Minh" -> ra ảnh nhà thờ Đức Bà)
-      queryVariants.push(query);
-      if (fallbackQuery && !query.toLowerCase().includes(fallbackQuery.toLowerCase())) {
-        queryVariants.push(`${query} ${fallbackQuery}`);
-      }
-    } else {
-      // Đối với địa danh, ưu tiên gắn tên tỉnh/thành trước để tránh nhầm với địa danh cùng tên ở nơi khác
-      if (fallbackQuery && !query.toLowerCase().includes(fallbackQuery.toLowerCase())) {
-        queryVariants.push(`${query} ${fallbackQuery}`);
-      }
-      queryVariants.push(query);
-    }
-
-    if (query.split(' ').length > 2) {
-      queryVariants.push(query.split(' ').slice(0, 2).join(' '));
-    }
-    queryVariants.push(`${query} Việt Nam`);
-
-    for (const q of queryVariants) {
-      const result = await trySourcesForQuery(q);
-      if (result) return result;
-    }
-
-    return null;
-  })();
-
-  IMAGE_PROMISE_CACHE[cacheKey] = fetchPromise;
-  let result = await fetchPromise;
-  
-  if (result) return result;
-
-  // Thử trên Wikipedia tiếng Anh (đôi khi có ảnh mà bản tiếng Việt không có)
-  result = await searchWiki(query, 'en');
-  if (result) return result;
-
-  // Lùi về từ khóa CHUNG theo loại nội dung (ẩm thực Việt Nam / tỉnh-thành) thay vì
-  // luôn dùng đúng 1 từ khóa duy nhất cho mọi thẻ — tránh việc nhiều món ăn hay địa
-  // danh khác nhau trong cùng một buổi lại hiển thị chung một ảnh giống hệt nhau.
-  const genericTerm = kind === 'food' ? 'ẩm thực Việt Nam' : (fallbackQuery || 'phong cảnh Việt Nam');
-  result = await searchOpenverse(genericTerm, 6);
-  if (result) return result;
-  result = await searchCommons(genericTerm, 6);
-  if (result) return result;
-  result = await searchWiki(genericTerm, 'vi');
-  if (result) return result;
-
-  // Không tìm được ảnh phù hợp: giữ khung ảnh trung tính thay vì hiển thị nhầm địa danh khác
-  return null;
-}
-
-const GRAY_PLACEHOLDER = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiNlMmU4ZjAiLz48L3N2Zz4=';
+/* ĐÃ BỎ toàn bộ pipeline tìm ảnh minh hoạ qua Google/Bing/Yahoo/Openverse/
+   Wikimedia Commons/Wikipedia (trước đây nằm ở đây, ~370 dòng) — đây chính
+   là nguồn gây ra lỗi nhiều thẻ khác nhau hiển thị TRÙNG một ảnh không liên
+   quan (do proxy scrape rớt mạng/timeout thì tự rơi về từ khoá chung, hoặc
+   Wikipedia/Commons search nhầm sang tài liệu/ảnh không liên quan). Card giờ
+   không còn ảnh, xem js/poi-images.js nếu sau này muốn thêm icon tượng trưng. */
 
 /**
  * Lấy đúng bộ dữ liệu (ẩm thực + địa danh) cho một điểm đến cấp 2 cụ thể.
@@ -1380,23 +989,31 @@ function renderDestCard(item, kind, slotKey, provinceStr) {
   const cardId = window.__cardRegistry.length;
   window.__cardRegistry.push({ item, kind, slotKey, provinceStr, title });
 
+  // Dòng gợi ý ngắn (giá tham khảo cho món ăn / địa chỉ cho địa danh) — dữ
+  // liệu này vốn có sẵn trong itinerary-data.js nhưng trước đây chỉ hiện
+  // trong popup chi tiết; giờ đưa thẳng lên card để card vẫn đủ thông tin
+  // dù không còn ảnh minh hoạ.
+  const highlight = getPrimaryHighlight(item, kind, slotKey, provinceStr);
+  const safeHighlight = escapeHtml(highlight.value);
+
   return `
     <div class="destination-card ${isFood ? 'food-card' : 'visit-card'} ${isChecked ? 'is-checked' : ''}" data-card-id="${cardId}" onclick="openDestDetail(event, ${cardId})">
-      <div class="dest-image-wrap" onclick="event.stopPropagation(); openImageLightbox(this)">
-        <img src="${GRAY_PLACEHOLDER}" alt="${safeTitle}" data-keyword="${safeKeyword}" data-fallback-keyword="${safeProvince}" data-kind="${kind}" class="dynamic-dest-img">
-        <div class="dest-overlay"></div>
-        <button type="button" class="dest-locate-btn" title="Chỉ đường trên bản đồ" onclick="event.stopPropagation(); goToMapWithItem(${cardId})">
-          <i data-lucide="map-pin"></i>
-        </button>
-        <i data-lucide="maximize-2" class="dest-expand-icon"></i>
+      <div class="dest-card-header">
+        <div class="dest-type-badge"><i data-lucide="${badgeIcon}"></i></div>
         <h3 class="dest-title i18n-dyn" data-vi="${safeTitle}">${safeTitle}</h3>
-        <label class="dest-checkin-label" onclick="event.stopPropagation()" title="Đánh dấu đã trải nghiệm">
-          <input type="checkbox" class="dest-checkin-cb" data-key="${checkKey}" ${isChecked ? 'checked' : ''}>
-          <span class="dest-checkin-mark"></span>
-        </label>
+        <div class="dest-card-actions">
+          <button type="button" class="dest-locate-btn" title="Chỉ đường trên bản đồ" onclick="event.stopPropagation(); goToMapWithItem(${cardId})">
+            <i data-lucide="map-pin"></i>
+          </button>
+          <label class="dest-checkin-label" onclick="event.stopPropagation()" title="Đánh dấu đã trải nghiệm">
+            <input type="checkbox" class="dest-checkin-cb" data-key="${checkKey}" ${isChecked ? 'checked' : ''}>
+            <span class="dest-checkin-mark"></span>
+          </label>
+        </div>
       </div>
       <div class="dest-body">
         <div class="dest-meta"><i data-lucide="clock" class="meta-icon"></i> ${hours}</div>
+        <div class="dest-highlight"><i data-lucide="${highlight.icon}" class="meta-icon"></i> <span class="i18n-dyn" data-vi="${safeHighlight}">${safeHighlight}</span></div>
         <div class="dest-tips">
           <p class="i18n-dyn" data-vi="${safeBody}">${safeBody}</p>
         </div>
@@ -1591,23 +1208,6 @@ function renderResult() {
   }
   state.isRerendering = false;
 
-  // Tải hình ảnh bất đồng bộ (Google Images nếu đã cấu hình khoá + Openverse + Wikimedia
-  // Commons + Wikipedia, giữ khung ảnh trung tính nếu không tìm được ảnh phù hợp)
-  document.querySelectorAll('.dynamic-dest-img').forEach(async (img) => {
-    const keyword = img.getAttribute('data-keyword');
-    const fallbackKeyword = img.getAttribute('data-fallback-keyword');
-    const kind = img.getAttribute('data-kind');
-    if (keyword) {
-      const actualImgUrl = await fetchDestImage(keyword, { kind, fallbackQuery: fallbackKeyword });
-      if (actualImgUrl) {
-        img.src = actualImgUrl;
-      } else {
-        const fbStr = kind === 'food' ? 'food,vietnam' : 'travel,vietnam';
-        img.src = `https://loremflickr.com/600/400/${fbStr}?lock=${Math.floor(Math.random() * 1000)}`;
-      }
-    }
-  });
-
   // Events for Week and Day buttons
   const weekBtns = resultSection.querySelectorAll('.week-btn');
   weekBtns.forEach(btn => {
@@ -1629,43 +1229,10 @@ function renderResult() {
   });
 }
 
-/* ============ Lightbox xem ảnh phóng to ============ */
-function openImageLightbox(wrapEl) {
-  const img = wrapEl.querySelector('img.dynamic-dest-img');
-  const titleEl = wrapEl.querySelector('.dest-title');
-  if (!img || !img.src) return;
-
-  const lightbox = document.getElementById('image-lightbox');
-  const lightboxImg = document.getElementById('image-lightbox-img');
-  const lightboxCaption = document.getElementById('image-lightbox-caption');
-  if (!lightbox || !lightboxImg) return;
-
-  lightboxImg.src = img.src;
-  lightboxImg.alt = img.alt || '';
-  if (lightboxCaption) lightboxCaption.textContent = titleEl ? titleEl.textContent : (img.alt || '');
-  lightbox.hidden = false;
-  document.body.style.overflow = 'hidden';
-}
-
-function closeImageLightbox() {
-  const lightbox = document.getElementById('image-lightbox');
-  if (!lightbox) return;
-  lightbox.hidden = true;
-  document.body.style.overflow = '';
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  const lightbox = document.getElementById('image-lightbox');
-  if (!lightbox) return;
-  const closeBtn = document.getElementById('image-lightbox-close');
-  if (closeBtn) closeBtn.addEventListener('click', closeImageLightbox);
-  lightbox.addEventListener('click', (e) => {
-    if (e.target === lightbox) closeImageLightbox();
-  });
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !lightbox.hidden) closeImageLightbox();
-  });
-});
+/* ĐÃ BỎ lightbox xem ảnh phóng to (openImageLightbox/closeImageLightbox) —
+   không còn ảnh trên card nên không còn gì để phóng to. Nếu index.html còn
+   khối <div id="image-lightbox">...</div>, xoá luôn khối đó cho gọn (không
+   bắt buộc, để lại cũng không gây lỗi vì không còn gì gọi tới nó nữa). */
 
 /* ============ Chuyển sang tab Bản đồ kèm điểm đến ============ */
 function goToMapWithItem(cardId) {
@@ -1723,17 +1290,27 @@ const FOOD_SPOT_FALLBACK = 'Quán ăn địa phương/khu chợ gần trung tâm
 const VISIT_ADDRESS_FALLBACK_TPL = provinceStr => `Khu vực trung tâm ${provinceStr || 'điểm đến'} — hỏi thêm tại nơi lưu trú hoặc trên bản đồ để có địa chỉ chi tiết`;
 const VISIT_TICKET_FALLBACK = 'Miễn phí, hoặc vé tham khảo 10.000 – 50.000đ tuỳ điểm (một số nơi thu phí gửi xe)';
 
+// Dòng thông tin NGẮN, quan trọng nhất cho 1 entry — dùng để hiện thẳng trên
+// card (thay cho ảnh) và cũng chính là dòng đầu tiên trong popup chi tiết,
+// nên chỉ viết logic 1 chỗ này rồi tái dùng ở cả 2 nơi.
+function getPrimaryHighlight(item, kind, slotKey, provinceStr) {
+  if (kind === 'food') {
+    const priceFallback = FOOD_PRICE_FALLBACK_BY_SLOT[slotKey] || FOOD_PRICE_FALLBACK_BY_SLOT.lunch;
+    return { icon: 'wallet', label: 'Giá tham khảo', value: item.priceRange || priceFallback };
+  }
+  return { icon: 'map-pin', label: 'Địa điểm', value: item.address || VISIT_ADDRESS_FALLBACK_TPL(provinceStr) };
+}
+
 function buildDetailInfoRows(entry) {
   const { item, kind, slotKey, provinceStr } = entry;
   const rows = [];
   if (kind === 'food') {
-    const priceFallback = FOOD_PRICE_FALLBACK_BY_SLOT[slotKey] || FOOD_PRICE_FALLBACK_BY_SLOT.lunch;
-    rows.push({ icon: 'wallet', label: 'Giá tham khảo', value: item.priceRange || priceFallback });
+    rows.push(getPrimaryHighlight(item, kind, slotKey, provinceStr));
     const spots = (item.suggestedSpots && item.suggestedSpots.length) ? item.suggestedSpots.join('; ') : FOOD_SPOT_FALLBACK;
     rows.push({ icon: 'store', label: 'Gợi ý quán / khu vực', value: spots });
     rows.push({ icon: 'clock', label: 'Khung giờ gợi ý', value: SLOT_HOURS[slotKey] || '' });
   } else {
-    rows.push({ icon: 'map-pin', label: 'Địa điểm', value: item.address || VISIT_ADDRESS_FALLBACK_TPL(provinceStr) });
+    rows.push(getPrimaryHighlight(item, kind, slotKey, provinceStr));
     rows.push({ icon: 'clock', label: 'Khung giờ gợi ý', value: SLOT_HOURS[slotKey] || '' });
     rows.push({ icon: 'ticket', label: 'Giá vé tham khảo', value: item.ticketPrice || VISIT_TICKET_FALLBACK });
   }
@@ -1751,10 +1328,6 @@ function openDestDetail(e, cardId) {
   if (!modal || !card) return;
 
   const cardEl = e.currentTarget;
-  const srcImg = cardEl.querySelector('img.dynamic-dest-img');
-  const imgEl = document.getElementById('dest-detail-img');
-  imgEl.src = srcImg ? srcImg.src : GRAY_PLACEHOLDER;
-  imgEl.alt = title;
 
   const badgeEl = document.getElementById('dest-detail-badge');
   const badgeText = isFood ? 'Ẩm thực' : (kind === 'nightlifeVisit' ? 'Về đêm' : 'Tham quan');

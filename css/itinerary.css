@@ -3,9 +3,10 @@
    ---------------------------------------------------------------------
    Bổ sung/ghi đè giao diện cho phần kết quả "Lịch Trình Đề Xuất" (tab
    Lịch trình): lưới thẻ nhiều cột, tiêu đề nhóm nhỏ (Ẩm thực / Tham quan
-   / Về đêm), huy hiệu phân loại trên ảnh, và khung xem ảnh phóng to
-   (lightbox). File này nạp SAU css/style.css để có thể ghi đè khi cần,
-   dùng lại đúng bộ biến màu/token đã khai báo trong style.css.
+   / Về đêm), header thẻ gồm huy hiệu phân loại + tiêu đề + nút hành động.
+   ĐÃ BỎ toàn bộ phần ảnh minh hoạ + lightbox phóng to ảnh (không còn dùng).
+   File này nạp SAU css/style.css để có thể ghi đè khi cần, dùng lại đúng
+   bộ biến màu/token đã khai báo trong style.css.
    ===================================================================== */
 
 /* ---- Lưới thẻ phản hồi nhiều cột (ghi đè grid-template-columns: 1fr cũ) ----
@@ -64,20 +65,25 @@
   color: #7c3aed; /* Tím (Về đêm) */
 }
 
-/* ---- Huy hiệu phân loại thẻ (thay cho các chip cảm xúc ngẫu nhiên cũ) ---- */
+/* ---- Header thẻ: badge phân loại + tiêu đề + nút hành động (thay cho phần
+   overlay trên ảnh cũ — giờ không còn ảnh nên đưa các phần tử này lên thành
+   một hàng ngang ở đầu card) ---- */
+.dest-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 1rem 1rem 0;
+}
+
 .dest-type-badge {
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 34px;
   height: 34px;
+  flex-shrink: 0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(4px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  background: var(--accent-soft);
 }
 
 .dest-type-badge i {
@@ -86,177 +92,91 @@
   color: var(--accent);
 }
 
-.food-card .dest-type-badge i {
-  color: var(--accent);
+.visit-card .dest-type-badge {
+  background: rgba(5, 150, 105, 0.12);
 }
 
 .visit-card .dest-type-badge i {
   color: var(--blue);
 }
 
-/* ---- Khung ảnh tuỳ chỉnh: gợi ý mở rộng khi hover, con trỏ dạng phóng to ---- */
-.dest-image-wrap {
-  cursor: zoom-in;
-  height: auto;
-  aspect-ratio: 4 / 3;
+/* Thẻ giờ hẹp hơn (tối thiểu 3 cột/hàng) — thu nhỏ tiêu đề cho vừa vặn */
+.dest-title {
+  flex: 1;
+  min-width: 0;
+  font-size: clamp(0.85rem, 1.6vw, 1.05rem);
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.3;
+  margin: 0.35rem 0 0;
 }
 
-/* Thẻ giờ hẹp hơn (tối thiểu 3 cột/hàng) — thu nhỏ tiêu đề và khoảng đệm cho vừa vặn */
-.dest-title {
-  font-size: clamp(0.75rem, 1.8vw, 1.05rem);
-  white-space: nowrap;
+.dest-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
 }
 
 .dest-body {
-  padding: 1rem;
+  padding: 0.75rem 1rem 1rem;
 }
 
 .dest-meta {
   font-size: 0.78rem;
+  margin-bottom: 0.4rem;
+}
+
+.dest-highlight {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
   margin-bottom: 0.75rem;
+}
+
+.dest-highlight .meta-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
 }
 
 .dest-tips p {
   font-size: 0.8rem;
 }
 
-.dest-expand-icon {
-  position: absolute;
-  bottom: 1rem;
-  right: 1rem;
+/* ---- Nút "Chỉ đường" (giờ nằm trong .dest-card-header, không còn absolute) ---- */
+.dest-locate-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 30px;
   height: 30px;
-  padding: 6px;
-  border-radius: 999px;
-  background: rgba(26, 26, 46, 0.55);
-  color: #fff;
-  opacity: 0;
-  transform: scale(0.85);
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.destination-card:hover .dest-expand-icon {
-  opacity: 1;
-  transform: scale(1);
-}
-
-/* ---- Lightbox xem ảnh phóng to ---- */
-.img-lightbox {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  background: rgba(15, 15, 25, 0.88);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  animation: lightboxFadeIn 0.2s ease;
-}
-
-.img-lightbox[hidden] {
-  display: none;
-}
-
-@keyframes lightboxFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.img-lightbox-content {
-  position: relative;
-  max-width: min(90vw, 1000px);
-  max-height: 85vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.img-lightbox-content img {
-  max-width: 100%;
-  max-height: 75vh;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-  object-fit: contain;
-  background: #111;
-}
-
-.img-lightbox-caption {
-  margin-top: 1rem;
-  color: #fff;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1.1rem;
-  text-align: center;
-}
-
-.img-lightbox-close {
-  position: absolute;
-  top: -18px;
-  right: -18px;
-  width: 40px;
-  height: 40px;
   border: none;
   border-radius: 999px;
-  background: #fff;
-  color: var(--ink);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-}
-
-.img-lightbox-close i {
-  width: 20px;
-  height: 20px;
-}
-
-@media (max-width: 640px) {
-  .img-lightbox-close {
-    top: -50px;
-    right: 0;
-  }
-}
-
-/* ---- Nút "Chỉ đường" (góc trên bên phải, tách biệt với huy hiệu phân loại) ---- */
-.dest-locate-btn {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border: none;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(4px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  background: var(--border);
   cursor: pointer;
   transition: transform 0.15s ease, background 0.15s ease;
 }
 
 .dest-locate-btn:hover {
   transform: scale(1.08);
-  background: #fff;
+  background: var(--accent-soft);
 }
 
 .dest-locate-btn i {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   color: var(--accent);
   pointer-events: none;
 }
 
-/* ---- Checkbox "đánh dấu đã trải nghiệm" (góc dưới bên trái ảnh) ---- */
+/* ---- Checkbox "đánh dấu đã trải nghiệm" (giờ nằm trong .dest-card-header) ---- */
 .dest-checkin-label {
-  position: absolute;
-  bottom: 1rem;
-  left: 1rem;
   display: flex;
   cursor: pointer;
-  z-index: 2;
 }
 
 .dest-checkin-label input {
@@ -273,9 +193,7 @@
   width: 30px;
   height: 30px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(4px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  background: var(--border);
   transition: background 0.15s ease, transform 0.15s ease;
 }
 
@@ -295,7 +213,7 @@
   color: #fff;
 }
 
-.destination-card.is-checked .dest-image-wrap {
+.destination-card.is-checked {
   opacity: 0.75;
 }
 
@@ -304,6 +222,11 @@
   font-size: 0.7rem;
   font-weight: 600;
   opacity: 0.85;
+}
+
+@keyframes lightboxFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* ---- Cửa sổ chi tiết: "phóng to" từ đúng vị trí thẻ vừa bấm ra giữa trang ---- */
@@ -335,21 +258,10 @@
   will-change: top, left, width, height;
 }
 
-.dest-detail-image-wrap {
-  position: relative;
-  width: 100%;
-  height: 42%;
-  min-height: 140px;
-  flex-shrink: 0;
-  background: var(--border);
-}
-
-.dest-detail-image-wrap img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
+/* ĐÃ BỎ .dest-detail-image-wrap (khung ảnh 42% chiều cao ở đầu popup chi
+   tiết) — không còn ảnh minh hoạ. Nút đóng (.dest-detail-close) giờ định vị
+   absolute ngay trên .dest-detail-card (vẫn là position: fixed nên vẫn làm
+   containing block bình thường), không cần nằm trong khung ảnh nữa. */
 .dest-detail-close {
   position: absolute;
   top: 0.75rem;
