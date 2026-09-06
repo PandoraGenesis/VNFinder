@@ -395,6 +395,24 @@ const dict = {
   "Tạo Lịch Trình Ngay": "Create Itinerary Now",
   "Vui lòng điền đầy đủ các thông tin: Ngày đến/đi, Số ngày, Điểm khởi hành và Điểm đến trước khi tạo lịch trình.": "Please fill in all details: start/end dates, number of days, departure point and destination before creating an itinerary.",
   "Vui lòng chọn ít nhất một sở thích trải nghiệm.": "Please select at least one experience preference.",
+
+  /* ---------- Khối "Thông tin thời tiết" (nội dung dựng động trong checkWeatherAlert) ---------- */
+  "Dự báo thời tiết tại": "Weather forecast for",
+  "từ ngày": "from",
+  "đến ngày": "to",
+  "Thời tiết dự kiến khá đẹp, trời nắng ráo": "Sunny and pleasant weather is expected",
+  "Nhiệt độ dao động 24 - 30°C": "Temperatures ranging between 24-30°C",
+  "Rất thích hợp cho các hoạt động trải nghiệm ngoài trời": "Great for outdoor experiences",
+
+  /* ---------- Modal "Chi tiết địa điểm" (nhãn cố định, dựng động trong openDestDetail) ---------- */
+  "Giá tham khảo": "Reference price",
+  "Gợi ý quán / khu vực": "Suggested spots / area",
+  "Khung giờ gợi ý": "Suggested time slot",
+  "Địa điểm": "Location",
+  "Giá vé tham khảo": "Reference ticket price",
+  "Về đêm": "Nightlife",
+  "Tham quan": "Sightseeing",
+
   "|": "|"
 };
 
@@ -429,6 +447,14 @@ function translateNode(node, lang) {
     }
   } else if (node.nodeType === Node.ELEMENT_NODE) {
     if (node.tagName === 'SCRIPT' || node.tagName === 'STYLE') return;
+    // Nội dung động (món ăn / địa danh / mô tả do hệ thống sinh ra trong tab
+    // Lịch trình, và trong modal chi tiết) được đánh dấu bằng class
+    // "i18n-dyn" và do js/i18n-auto.js toàn quyền xử lý qua data-vi + API
+    // dịch máy. Nếu để translateNode() tiếp tục thay thế theo dict tĩnh bên
+    // trong subtree này, hai cơ chế sẽ giẫm lên nhau và làm nội dung động
+    // hiển thị sai/nhấp nháy khi đổi ngôn ngữ. Vì vậy bỏ qua hoàn toàn
+    // subtree này, để i18n-auto.js xử lý.
+    if (node.classList && node.classList.contains('i18n-dyn')) return;
     if (node.tagName === 'INPUT' && node.placeholder) {
       const text = node.placeholder.trim();
       if (lang === 'en' && dict[text]) node.placeholder = dict[text];
@@ -440,13 +466,32 @@ function translateNode(node, lang) {
   }
 }
 
+// Áp dụng lại ngôn ngữ ĐANG CHỌN cho một phần cụ thể của trang (mặc định:
+// toàn bộ body). Dùng hàm này thay vì tự viết lại translateNode() mỗi khi
+// một phần giao diện được vẽ lại bằng innerHTML — ví dụ: đổi ngày/tuần
+// trong tab Lịch trình, cập nhật khối dự báo thời tiết, mở modal chi tiết
+// địa điểm. Những chỗ đó chèn HTML mới hoàn toàn bằng tiếng Việt, và nếu
+// không gọi lại applyCurrentLanguage() sau khi chèn thì nội dung mới sẽ
+// đứng yên ở tiếng Việt kể cả khi trang đang ở chế độ "en" — đây chính là
+// nguyên nhân khiến dữ liệu động bị "lỗi" khi chuyển ngôn ngữ.
+function applyCurrentLanguage(root) {
+  const lang = document.documentElement.lang;
+  if (lang !== 'en' && lang !== 'vn') return;
+  translateNode(root || document.body, lang);
+  if (window.applyAutoTranslation) {
+    // Với các phần tử .i18n-dyn nằm ngoài #result (vd: modal chi tiết),
+    // truyền thẳng root vào để applyAutoTranslation cũng quét luôn.
+    window.applyAutoTranslation(root || document.getElementById('result'), lang);
+    if (root && root.id !== 'result') {
+      window.applyAutoTranslation(document.getElementById('result'), lang);
+    }
+  }
+}
+window.applyCurrentLanguage = applyCurrentLanguage;
+
 function updateLanguage(lang) {
   document.documentElement.lang = lang;
-  translateNode(document.body, lang);
-  // Dịch tự động phần nội dung động của lịch trình (món ăn, địa danh, mô tả)
-  if (window.applyAutoTranslation) {
-    window.applyAutoTranslation(document.getElementById('result'), lang);
-  }
+  applyCurrentLanguage(document.body);
   const btns = document.querySelectorAll('.lang-btn');
   btns.forEach(btn => {
     if (btn.textContent.trim().toLowerCase() === lang.toLowerCase()) {

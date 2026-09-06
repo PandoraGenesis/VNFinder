@@ -18,6 +18,13 @@
  *   lịch trình được tạo/render lại, nội dung mới sẽ tự dịch ngay nếu
  *   trang đang ở chế độ tiếng Anh.
  *
+ * Mỗi phần tử .i18n-dyn được gắn thêm 2 thuộc tính nội bộ để chống lặp:
+ * - data-i18n-state: ngôn ngữ đang hiển thị thực tế ("vn" | "en" | "en-pending")
+ * - data-i18n-src:   bản gốc (data-vi) tại thời điểm dịch gần nhất
+ * Nhờ đó, nếu MutationObserver tự kích hoạt lại do chính việc set
+ * textContent gây ra, hàm sẽ nhận ra phần tử đã ở đúng trạng thái và bỏ
+ * qua ngay, tránh dịch lặp lại vô hạn và gọi API trùng lặp.
+ *
  * Muốn thêm nội dung động cần dịch tự động ở nơi khác trong trang: chỉ
  * cần bọc phần tử bằng class "i18n-dyn" + thuộc tính data-vi, không cần
  * sửa gì thêm ở file này.
@@ -31,6 +38,10 @@ try {
   autoI18nCache = {};
 }
 
+// Gộp các request dịch đang chạy cho cùng 1 chuỗi gốc, tránh gọi API
+// nhiều lần cùng lúc khi có nhiều thẻ dùng chung một tên món ăn/địa danh.
+const pendingTranslations = {};
+
 function saveAutoI18nCache() {
   try {
     localStorage.setItem(AUTO_I18N_CACHE_KEY, JSON.stringify(autoI18nCache));
@@ -43,51 +54,79 @@ async function translateTextAuto(text) {
   const key = text.trim();
   if (!key) return text;
   if (autoI18nCache[key]) return autoI18nCache[key];
+  if (pendingTranslations[key]) return pendingTranslations[key];
 
-  try {
-    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(key)}&langpair=vi|en`;
-    const res = await fetch(url);
-    const data = await res.json();
-    const translated = (data && data.responseData && data.responseData.translatedText)
-      ? data.responseData.translatedText
-      : key;
-    autoI18nCache[key] = translated;
-    saveAutoI18nCache();
-    return translated;
-  } catch (e) {
-    console.error('Lỗi dịch tự động:', e);
-    return key; // Nếu lỗi mạng: tạm giữ nguyên bản gốc
+  const request = (async () => {
+    try {
+      const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(key)}&langpair=vi|en`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const translated = (data && data.responseData && data.responseData.translatedText)
+        ? data.responseData.translatedText
+        : key;
+      autoI18nCache[key] = translated;
+      saveAutoI18nCache();
+      return translated;
+    } catch (e) {
+      console.error('Lỗi dịch tự động:', e);
+      return key; // Nếu lỗi mạng: tạm giữ nguyên bản gốc
+    } finally {
+      delete pendingTranslations[key];
+    }
+  })();
+
+  pendingTranslations[key] = request;
+  return request;
+}
+
+// Dịch (hoặc khôi phục) một phần tử .i18n-dyn duy nhất, có cập nhật
+// data-i18n-state / data-i18n-src để MutationObserver không tự lặp lại.
+async function applyAutoTranslationToElement(el, lang) {
+  const original = el.getAttribute('data-vi');
+  if (!original) return;
+
+  if (lang === 'vn') {
+    el.textContent = original;
+    el.dataset.i18nState = 'vn';
+    el.dataset.i18nSrc = original;
+    return;
+  }
+
+  // lang === 'en'
+  el.dataset.i18nState = 'en-pending';
+  el.dataset.i18nSrc = original;
+
+  const translated = await translateTextAuto(original);
+
+  // Chỉ áp dụng nếu người dùng chưa chuyển lại về tiếng Việt trong lúc
+  // chờ kết quả, và nội dung gốc của phần tử chưa bị thay đổi (ví dụ do
+  // lịch trình được tạo lại) trong lúc chờ.
+  if (document.documentElement.lang === 'en' && el.getAttribute('data-vi') === original) {
+    el.textContent = translated;
+    el.dataset.i18nState = 'en';
   }
 }
 
-// Áp dụng dịch tự động cho toàn bộ phần tử .i18n-dyn bên trong `root`
+// Áp dụng dịch tự động cho toàn bộ phần tử .i18n-dyn bên trong `root`.
+// Phần tử nào đã ở đúng trạng thái/ngôn ngữ với đúng bản gốc hiện tại thì
+// được bỏ qua ngay — đây chính là chốt chặn vòng lặp MutationObserver.
 function applyAutoTranslation(root, lang) {
   if (!root) return;
   const nodes = root.querySelectorAll('.i18n-dyn');
-  nodes.forEach(async (el) => {
+  nodes.forEach((el) => {
     const original = el.getAttribute('data-vi');
     if (!original) return;
-
-    if (lang === 'vn') {
-      el.textContent = original;
-      return;
-    }
-
-    // lang === 'en'
-    if (autoI18nCache[original]) {
-      el.textContent = autoI18nCache[original];
-    } else {
-      const translated = await translateTextAuto(original);
-      // Chỉ cập nhật nếu người dùng chưa chuyển lại về tiếng Việt trong lúc chờ kết quả
-      if (document.documentElement.lang === 'en') {
-        el.textContent = translated;
-      }
-    }
+    if (el.dataset.i18nState === lang && el.dataset.i18nSrc === original) return;
+    applyAutoTranslationToElement(el, lang);
   });
 }
+window.applyAutoTranslation = applyAutoTranslation;
 
 // Theo dõi khu vực kết quả lịch trình: nội dung mới sinh ra sẽ tự dịch ngay
-// nếu trang đang ở chế độ tiếng Anh (ví dụ: tạo lịch trình trong lúc đang xem bản EN).
+// nếu trang đang ở chế độ tiếng Anh (ví dụ: tạo lịch trình trong lúc đang
+// xem bản EN). Nhờ chốt chặn ở applyAutoTranslation phía trên, các mutation
+// do chính module này gây ra (khi set textContent) sẽ bị bỏ qua ngay ở lần
+// quét kế tiếp thay vì kích hoạt dịch lặp lại vô hạn.
 function observeDynamicContent(container) {
   if (!container) return;
   const observer = new MutationObserver(() => {

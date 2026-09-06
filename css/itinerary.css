@@ -8,20 +8,28 @@
    dùng lại đúng bộ biến màu/token đã khai báo trong style.css.
    ===================================================================== */
 
-/* ---- Lưới thẻ phản hồi nhiều cột (ghi đè grid-template-columns: 1fr cũ) ---- */
-.destination-grid {
-  grid-template-columns: repeat(3, 1fr);
+/* ---- Lưới thẻ phản hồi nhiều cột (ghi đè grid-template-columns: 1fr cũ) ----
+   Theo yêu cầu: tối thiểu luôn phải có 3 khung/hàng ở mọi kích thước màn hình. */
+/* !important + selector kép (.result-section .destination-grid) để đảm bảo LUÔN thắng
+   mọi quy tắc grid-template-columns cũ trong style.css cho cùng class .destination-grid
+   (đây chính là lý do lưới trước đó vẫn rơi về 2 cột dù file này đã khai báo 3 cột). */
+.destination-grid,
+.result-section .destination-grid {
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 1.25rem;
 }
 
-@media (max-width: 1024px) {
-  .destination-grid {
-    grid-template-columns: repeat(2, 1fr);
+@media (min-width: 1400px) {
+  .destination-grid,
+  .result-section .destination-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
   }
 }
 
 @media (max-width: 640px) {
-  .destination-grid {
-    grid-template-columns: 1fr;
+  .destination-grid,
+  .result-section .destination-grid {
+    gap: 0.75rem;
   }
 }
 
@@ -40,8 +48,20 @@
 .dest-subgroup-header i {
   width: 18px;
   height: 18px;
-  color: var(--accent);
   flex-shrink: 0;
+}
+
+/* Các màu phân biệt cho từng nhóm */
+.dest-subgroup-food, .dest-subgroup-food i {
+  color: #ea580c; /* Cam (Ẩm thực) */
+}
+
+.dest-subgroup-visit, .dest-subgroup-visit i {
+  color: #059669; /* Xanh ngọc (Tham quan) */
+}
+
+.dest-subgroup-nightlifeVisit, .dest-subgroup-nightlifeVisit i {
+  color: #7c3aed; /* Tím (Về đêm) */
 }
 
 /* ---- Huy hiệu phân loại thẻ (thay cho các chip cảm xúc ngẫu nhiên cũ) ---- */
@@ -77,6 +97,27 @@
 /* ---- Khung ảnh tuỳ chỉnh: gợi ý mở rộng khi hover, con trỏ dạng phóng to ---- */
 .dest-image-wrap {
   cursor: zoom-in;
+  height: auto;
+  aspect-ratio: 4 / 3;
+}
+
+/* Thẻ giờ hẹp hơn (tối thiểu 3 cột/hàng) — thu nhỏ tiêu đề và khoảng đệm cho vừa vặn */
+.dest-title {
+  font-size: clamp(0.75rem, 1.8vw, 1.05rem);
+  white-space: nowrap;
+}
+
+.dest-body {
+  padding: 1rem;
+}
+
+.dest-meta {
+  font-size: 0.78rem;
+  margin-bottom: 0.75rem;
+}
+
+.dest-tips p {
+  font-size: 0.8rem;
 }
 
 .dest-expand-icon {
@@ -174,5 +215,243 @@
   .img-lightbox-close {
     top: -50px;
     right: 0;
+  }
+}
+
+/* ---- Nút "Chỉ đường" (góc trên bên phải, tách biệt với huy hiệu phân loại) ---- */
+.dest-locate-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.dest-locate-btn:hover {
+  transform: scale(1.08);
+  background: #fff;
+}
+
+.dest-locate-btn i {
+  width: 16px;
+  height: 16px;
+  color: var(--accent);
+  pointer-events: none;
+}
+
+/* ---- Checkbox "đánh dấu đã trải nghiệm" (góc dưới bên trái ảnh) ---- */
+.dest-checkin-label {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  display: flex;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.dest-checkin-label input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.dest-checkin-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.dest-checkin-mark i {
+  width: 15px;
+  height: 15px;
+  color: transparent;
+  transition: color 0.15s ease;
+}
+
+.dest-checkin-label input:checked + .dest-checkin-mark {
+  background: var(--success);
+  transform: scale(1.05);
+}
+
+.dest-checkin-label input:checked + .dest-checkin-mark i {
+  color: #fff;
+}
+
+.destination-card.is-checked .dest-image-wrap {
+  opacity: 0.75;
+}
+
+.destination-card.is-checked .dest-title::after {
+  content: ' ✓ Đã trải nghiệm';
+  font-size: 0.7rem;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+/* ---- Cửa sổ chi tiết: "phóng to" từ đúng vị trí thẻ vừa bấm ra giữa trang ---- */
+.dest-detail-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+}
+
+.dest-detail-modal[hidden] {
+  display: none;
+}
+
+.dest-detail-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 15, 25, 0.6);
+  animation: lightboxFadeIn 0.2s ease;
+}
+
+.dest-detail-card {
+  position: fixed;
+  background: #fff;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  will-change: top, left, width, height;
+}
+
+.dest-detail-image-wrap {
+  position: relative;
+  width: 100%;
+  height: 42%;
+  min-height: 140px;
+  flex-shrink: 0;
+  background: var(--border);
+}
+
+.dest-detail-image-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dest-detail-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 2;
+}
+
+.dest-detail-close i {
+  width: 18px;
+  height: 18px;
+  color: var(--ink);
+}
+
+.dest-detail-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.dest-detail-badge {
+  display: inline-block;
+  padding: 0.3rem 0.85rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.75rem;
+}
+
+.dest-detail-title {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0 0 0.5rem;
+}
+
+.dest-detail-desc {
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--slate);
+  margin: 0 0 1.25rem;
+}
+
+.dest-detail-info-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.dest-detail-info-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: #F8FAFC;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.dest-detail-info-row i {
+  width: 18px;
+  height: 18px;
+  color: var(--accent);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.dest-detail-info-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--slate-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 0.2rem;
+}
+
+.dest-detail-info-value {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+@media (max-width: 640px) {
+  .dest-detail-card {
+    width: 92vw !important;
+    left: 4vw !important;
   }
 }

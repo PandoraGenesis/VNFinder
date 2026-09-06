@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VNFinder - Người bạn đồng hành khám phá Việt Nam</title>
+  <title>VNFinder - Nền Tảng Du Lịch AI Đa Vùng Tại Việt Nam</title>
   <meta name="description"
     content="VNFinder - trợ lý du lịch AI đồng hành cùng bạn khám phá Việt Nam, từ địa đầu Hà Giang đến mũi Cà Mau.">
   <link rel="icon" type="image/png" href="assets/img/logo.png">
@@ -1001,7 +1001,7 @@
       <div class="vnmap-header">
         <h2 class="vnmap-title">Bản đồ &amp; Chỉ đường</h2>
         <p class="vnmap-subtitle">Tìm một điểm đến bất kỳ — VNFinder sẽ chỉ đường trực tiếp từ vị trí hiện tại của
-          bạn, giống như trên Google Maps.</p>
+          bạn.</p>
       </div>
 
       <div class="vnmap-search-bar" id="vnmap-search">
@@ -1053,10 +1053,10 @@
         <i data-lucide="waves" class="hero__icon hero__icon--left" aria-hidden="true"></i>
         <i data-lucide="mountain" class="hero__icon hero__icon--right" aria-hidden="true"></i>
         <div class="container hero__content">
-          <h1>Trợ Lý Du Lịch AI
+          <h1>AI - Trợ Lý Du Lịch
             <br>Khám Phá Việt Nam
           </h1>
-          <p>Tự động lên lịch trình tối ưu theo thực tế địa lý trên mọi miền Tổ Quốc</p>
+          <p>Lên lịch trình thông minh, tối ưu thời gian và quãng đường di chuyển.</p>
         </div>
       </header>
 
@@ -1921,6 +1921,11 @@
   <script src="js/location.js?v=1" defer></script>
   <script src="js/data.js"></script>
   <script src="js/itinerary-data.js"></script>
+  <script src="js/extended-data.js"></script>
+  <script src="js/extended-data-part1.js"></script>
+  <script src="js/extended-data-part2.js"></script>
+  <script src="js/extended-data-part3.js"></script>
+  <script src="js/extended-data-crafts.js"></script>
   <script src="js/script.js?v=1" defer></script>
   <script src="js/nav.js?v=1" defer></script>
   <script src="js/i18n-auto.js?v=1" defer></script>
@@ -1949,6 +1954,25 @@
       </button>
       <img id="image-lightbox-img" src="" alt="">
       <p id="image-lightbox-caption" class="img-lightbox-caption"></p>
+    </div>
+  </div>
+
+  <!-- Cửa sổ chi tiết (phóng to từ vị trí thẻ được bấm) cho 1 mục ẩm thực/địa danh trong Lịch trình -->
+  <div id="dest-detail-modal" class="dest-detail-modal" hidden>
+    <div class="dest-detail-backdrop"></div>
+    <div class="dest-detail-card" id="dest-detail-card">
+      <button type="button" id="dest-detail-close" class="dest-detail-close" aria-label="Đóng">
+        <i data-lucide="x"></i>
+      </button>
+      <div class="dest-detail-image-wrap">
+        <img id="dest-detail-img" src="" alt="">
+      </div>
+      <div class="dest-detail-body">
+        <span id="dest-detail-badge" class="dest-detail-badge"></span>
+        <h2 id="dest-detail-title" class="dest-detail-title"></h2>
+        <p id="dest-detail-desc" class="dest-detail-desc"></p>
+        <div id="dest-detail-info-grid" class="dest-detail-info-grid"></div>
+      </div>
     </div>
   </div>
 </body>

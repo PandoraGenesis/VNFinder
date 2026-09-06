@@ -83,13 +83,13 @@ body.sh-app :focus-visible {
 }
 
 .sh-nav__inner {
-  max-width: 1180px;
+  max-width: 100%;
   margin-inline: auto;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 8px clamp(14px, 3vw, 28px);
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 8px 20px;
 }
 
 .sh-nav__brand {
@@ -109,7 +109,7 @@ body.sh-app :focus-visible {
 .sh-nav__brand-text {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 0.95rem;
+  font-size: 1.05rem; /* Đồng bộ cỡ chữ với các tab */
   letter-spacing: 0.02em;
   color: var(--vn-paper);
 }
@@ -117,7 +117,9 @@ body.sh-app :focus-visible {
 .sh-nav__tabs {
   display: flex;
   align-items: center;
-  gap: 2px;
+  justify-content: space-evenly; /* Trải đều các mục theo chiều rộng */
+  gap: 0;
+  flex: 1;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -130,7 +132,8 @@ body.sh-app :focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 106px;
+  width: auto;
+  padding: 8px 16px;
   gap: 6px;
   white-space: nowrap;
   border: none;
@@ -138,8 +141,7 @@ body.sh-app :focus-visible {
   color: rgba(243, 245, 236, 0.68);
   font-family: var(--font-body);
   font-weight: 600;
-  font-size: 0.88rem;
-  padding: 8px 0;
+  font-size: 1.05rem; /* Tăng cỡ chữ */
   border-radius: 999px;
   cursor: pointer;
   transition: color 0.2s ease, background-color 0.2s ease;
@@ -163,7 +165,7 @@ body.sh-app :focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  margin-left: 8px;
+  margin-left: 8px; /* Sát sau tab cuối, không đẩy ra góc phải */
   margin-right: 8px;
   padding-left: 10px;
   padding-right: 10px;
@@ -210,10 +212,10 @@ body.sh-app :focus-visible {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 6px 12px;
+  padding: 8px 16px;
   border-radius: 99px;
   font-family: var(--font-body);
-  font-size: 0.9rem;
+  font-size: 1.05rem;
   font-weight: 600;
   cursor: pointer;
   border: none;
@@ -224,7 +226,7 @@ body.sh-app :focus-visible {
 .auth-login {
   background: #cce8fc;
   color: #0056b3;
-  width: 108px;
+  width: auto;
 }
 
 .auth-login:hover {
@@ -245,7 +247,7 @@ html[lang="vn"] .auth-login .auth-icon {
 .auth-signup {
   background: #0099ff;
   color: #ffffff;
-  width: 86px;
+  width: auto;
 }
 
 .auth-signup:hover {
@@ -1041,9 +1043,11 @@ html[lang="vn"] .auth-login .auth-icon {
 .sh-footer {
   background: var(--vn-ink);
   color: rgba(243, 245, 236, 0.7);
-  text-align: center;
   font-size: 0.85rem;
-  padding: 28px 20px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-top: 40px;
 }
 
