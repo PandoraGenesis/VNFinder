@@ -75,11 +75,12 @@ body.sh-app :focus-visible {
 .sh-nav {
   position: sticky;
   top: 0;
-  z-index: 40;
+  z-index: 200;
   background: rgba(20, 44, 42, 0.82);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   box-shadow: 0 12px 30px -14px rgba(0, 0, 0, 0.5);
+  overflow: visible;
 }
 
 .sh-nav__inner {
@@ -88,8 +89,9 @@ body.sh-app :focus-visible {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 8px;
-  padding: 8px 20px;
+  gap: 8px; /* Tăng lại gap */
+  padding: 8px 16px; /* Tăng lại padding ngang */
+  overflow: visible;
 }
 
 .sh-nav__brand {
@@ -109,7 +111,7 @@ body.sh-app :focus-visible {
 .sh-nav__brand-text {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 1.05rem; /* Đồng bộ cỡ chữ với các tab */
+  font-size: 1.3rem; /* Tăng cỡ chữ để nổi bật tên trang web */
   letter-spacing: 0.02em;
   color: var(--vn-paper);
 }
@@ -117,11 +119,14 @@ body.sh-app :focus-visible {
 .sh-nav__tabs {
   display: flex;
   align-items: center;
-  justify-content: space-evenly; /* Trải đều các mục theo chiều rộng */
+  justify-content: flex-start; /* MUST be flex-start để không bị tràn ngược sang trái */
   gap: 0;
-  flex: 1;
+  flex: 0 1 auto; /* Cho phép co giãn nhưng không tự động chiếm toàn bộ không gian */
+  margin-left: auto; /* Đẩy vùng chứa sang phải */
   overflow-x: auto;
   scrollbar-width: none;
+  min-width: 0;
+  padding-right: 4px; /* Giảm padding để cân đối khoảng cách với gap của thẻ cha */
 }
 
 .sh-nav__tabs::-webkit-scrollbar {
@@ -133,15 +138,15 @@ body.sh-app :focus-visible {
   align-items: center;
   justify-content: center;
   width: auto;
-  padding: 8px 16px;
-  gap: 6px;
+  padding: 8px 12px; /* Tăng padding */
+  gap: 6px; /* Tăng gap */
   white-space: nowrap;
   border: none;
   background: transparent;
   color: rgba(243, 245, 236, 0.68);
   font-family: var(--font-body);
   font-weight: 600;
-  font-size: 1.05rem; /* Tăng cỡ chữ */
+  font-size: 1rem; /* Tăng cỡ chữ lên 1rem */
   border-radius: 999px;
   cursor: pointer;
   transition: color 0.2s ease, background-color 0.2s ease;
@@ -159,16 +164,18 @@ body.sh-app :focus-visible {
 .sh-nav__actions {
   display: flex;
   align-items: center;
+  gap: 12px; /* Đặt khoảng cách cố định 12px giữa bộ ngôn ngữ và nút đăng nhập */
+  flex-shrink: 0;
 }
 
 .sh-lang-switch {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  margin-left: 8px; /* Sát sau tab cuối, không đẩy ra góc phải */
-  margin-right: 8px;
-  padding-left: 10px;
-  padding-right: 10px;
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: 8px; /* Tăng padding */
+  padding-right: 8px;
   border-left: 1px solid rgba(255, 255, 255, 0.2);
   border-right: 1px solid rgba(255, 255, 255, 0.2);
 }
@@ -178,7 +185,7 @@ body.sh-app :focus-visible {
   border: none;
   color: rgba(255, 255, 255, 0.4);
   font-family: var(--font-body);
-  font-size: 0.94rem;
+  font-size: 0.9rem; /* Tăng cỡ chữ */
   font-weight: 700;
   cursor: pointer;
   padding: 4px;
@@ -202,8 +209,8 @@ body.sh-app :focus-visible {
 .sh-auth {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-left: 8px;
+  gap: 6px; /* Tăng gap */
+  margin-left: 0;
   flex-shrink: 0;
 }
 
@@ -211,11 +218,11 @@ body.sh-app :focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 8px 16px;
+  gap: 6px; /* Tăng gap */
+  padding: 8px 12px; /* Tăng padding */
   border-radius: 99px;
   font-family: var(--font-body);
-  font-size: 1.05rem;
+  font-size: 1rem; /* Tăng cỡ chữ lên 1rem */
   font-weight: 600;
   cursor: pointer;
   border: none;
@@ -334,7 +341,7 @@ html[lang="vn"] .auth-login .auth-icon {
 .sh-hero__scroll {
   position: absolute;
   right: 48px;
-  bottom: 132px;
+  bottom: 40px;
   z-index: 1;
   display: flex;
   flex-direction: column;

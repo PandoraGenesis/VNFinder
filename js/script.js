@@ -976,7 +976,6 @@ function renderDestCard(item, kind, slotKey, provinceStr) {
   const isFood = kind === 'food';
   const title = isFood ? item.dish : item.name;
   const bodyText = isFood ? item.desc : (item.tips || item.desc || '');
-  const badgeIcon = kind === 'nightlifeVisit' ? 'moon-star' : (isFood ? 'utensils' : 'landmark');
   const hours = SLOT_HOURS[slotKey] || '';
   const safeTitle = escapeHtml(title);
   const safeBody = escapeHtml(bodyText);
@@ -999,17 +998,14 @@ function renderDestCard(item, kind, slotKey, provinceStr) {
   return `
     <div class="destination-card ${isFood ? 'food-card' : 'visit-card'} ${isChecked ? 'is-checked' : ''}" data-card-id="${cardId}" onclick="openDestDetail(event, ${cardId})">
       <div class="dest-card-header">
-        <div class="dest-type-badge"><i data-lucide="${badgeIcon}"></i></div>
+        <button type="button" class="dest-type-badge" title="Chỉ đường trên bản đồ" onclick="event.stopPropagation(); goToMapWithItem(${cardId})">
+          <i data-lucide="map-pin"></i>
+        </button>
         <h3 class="dest-title i18n-dyn" data-vi="${safeTitle}">${safeTitle}</h3>
-        <div class="dest-card-actions">
-          <button type="button" class="dest-locate-btn" title="Chỉ đường trên bản đồ" onclick="event.stopPropagation(); goToMapWithItem(${cardId})">
-            <i data-lucide="map-pin"></i>
-          </button>
-          <label class="dest-checkin-label" onclick="event.stopPropagation()" title="Đánh dấu đã trải nghiệm">
-            <input type="checkbox" class="dest-checkin-cb" data-key="${checkKey}" ${isChecked ? 'checked' : ''}>
-            <span class="dest-checkin-mark"></span>
-          </label>
-        </div>
+        <label class="dest-checkin-label" onclick="event.stopPropagation()" title="Đánh dấu đã trải nghiệm">
+          <input type="checkbox" class="dest-checkin-cb" data-key="${checkKey}" ${isChecked ? 'checked' : ''}>
+          <span class="dest-checkin-mark"></span>
+        </label>
       </div>
       <div class="dest-body">
         <div class="dest-meta"><i data-lucide="clock" class="meta-icon"></i> ${hours}</div>
@@ -1370,20 +1366,28 @@ function openDestDetail(e, cardId) {
   // Hiệu ứng: thẻ "phóng to" từ đúng vị trí vừa bấm ra giữa trang
   const startRect = cardEl.getBoundingClientRect();
   const finalWidth = Math.min(window.innerWidth * 0.9, 640);
-  const finalHeight = Math.min(window.innerHeight * 0.85, 680);
+  
+  // HIỂN THỊ MODAL TRƯỚC ĐỂ TRÌNH DUYỆT TÍNH ĐƯỢC KÍCH THƯỚC (nhưng chưa vẽ lên màn hình vì JS đang chạy)
+  modal.hidden = false;
+  document.body.style.overflow = 'hidden';
+  window.lucide.createIcons({ root: card });
+  
+  // Đo chiều cao thực tế của nội dung với chiều rộng cuối cùng
+  card.style.transition = 'none';
+  card.style.width = finalWidth + 'px';
+  card.style.height = 'auto';
+  const contentHeight = card.offsetHeight;
+  
+  const finalHeight = Math.min(contentHeight, window.innerHeight * 0.85, 680);
   const finalTop = (window.innerHeight - finalHeight) / 2;
   const finalLeft = (window.innerWidth - finalWidth) / 2;
 
-  card.style.transition = 'none';
+  // Đặt lại kích thước ban đầu để chuẩn bị animate
   card.style.top = startRect.top + 'px';
   card.style.left = startRect.left + 'px';
   card.style.width = startRect.width + 'px';
   card.style.height = startRect.height + 'px';
   card.style.opacity = '0.4';
-
-  modal.hidden = false;
-  document.body.style.overflow = 'hidden';
-  window.lucide.createIcons({ root: card });
 
   // Ép trình duyệt tính lại layout trước khi chuyển sang trạng thái cuối để transition chạy đúng
   void card.offsetWidth;
