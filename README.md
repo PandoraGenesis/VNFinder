@@ -67,7 +67,7 @@ VNFinder/
 │   │   ├── islands.geojson        # Dữ liệu ranh giới các đảo
 │   │   ├── provinces.geojson      # Dữ liệu ranh giới cấp tỉnh/thành
 │   │   ├── search-index.json      # Chỉ mục tìm kiếm địa danh cho bản đồ
-│   │   └── wards/                 # Dữ liệu ranh giới cấp xã/phường, theo mã tỉnh (01.geojson, 04.geojson, ...)
+│   │   └── wards/                 # Dữ liệu ranh giới cấp xã/phường, theo mã tỉnh
 │   └── vn-boundary.geojson        # Ranh giới quốc gia Việt Nam
 ├── js/
 │   ├── auth.js                    # Logic đăng nhập/đăng ký
@@ -86,6 +86,7 @@ VNFinder/
 │   └── script.js                  # Logic chính, khởi tạo và liên kết các module
 ├── .gitignore
 ├── LICENSE
+├── tinh-thanh-cong-thong-tin-du-lich-url.csv
 └── README.md
 ```
 
@@ -170,7 +171,7 @@ VNFinder/
 │   │   ├── islands.geojson        # Island boundary data
 │   │   ├── provinces.geojson      # Provincial-level boundary data
 │   │   ├── search-index.json      # Place search index for the map
-│   │   └── wards/                 # Ward-level boundary data, by province code (01.geojson, 04.geojson, ...)
+│   │   └── wards/                 # Ward-level boundary data, by province code
 │   └── vn-boundary.geojson        # Vietnam national boundary
 ├── js/
 │   ├── auth.js                    # Sign-in/sign-up logic
@@ -189,6 +190,7 @@ VNFinder/
 │   └── script.js                  # Main logic, initializes and wires up modules
 ├── .gitignore
 ├── LICENSE
+├── tinh-thanh-cong-thong-tin-du-lich-url.csv
 └── README.md
 ```
 
