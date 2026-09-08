@@ -738,7 +738,9 @@ const ITINERARY_DATA = {
     ],
     afternoonVisit: [
       { name: 'Phố cổ Hà Nội (36 phố phường)', desc: 'Khu phố cổ với kiến trúc và nhịp sống buôn bán truyền thống.', keyword: 'Phố cổ Hà Nội', tips: 'Đi bộ khám phá từng con phố nghề để hiểu rõ nét đặc trưng.', address: 'Khu vực quanh hồ Hoàn Kiếm, quận Hoàn Kiếm, Hà Nội', ticketPrice: 'Miễn phí' },
-      { name: 'Bảo tàng Dân tộc học Việt Nam', desc: 'Trưng bày văn hoá 54 dân tộc Việt Nam sinh động.', keyword: 'Bảo tàng Dân tộc học Việt Nam', tips: 'Khu ngoài trời có nhà sàn thực tế của các dân tộc, nên dạo cả hai khu.', address: 'Số 1 đường Nguyễn Văn Huyên, phường Nghĩa Đô, Hà Nội', ticketPrice: 'Khoảng 40.000đ/vé (20.000đ cho sinh viên)' }
+      { name: 'Bảo tàng Dân tộc học Việt Nam', desc: 'Trưng bày văn hoá 54 dân tộc Việt Nam sinh động.', keyword: 'Bảo tàng Dân tộc học Việt Nam', tips: 'Khu ngoài trời có nhà sàn thực tế của các dân tộc, nên dạo cả hai khu.', address: 'Số 1 đường Nguyễn Văn Huyên, phường Nghĩa Đô, Hà Nội', ticketPrice: 'Khoảng 40.000đ/vé (20.000đ cho sinh viên)' },
+      { name: 'Lăng Chủ tịch Hồ Chí Minh', desc: 'Nơi lưu giữ thi hài Chủ tịch Hồ Chí Minh, không gian trang nghiêm giữa Quảng trường Ba Đình.', keyword: 'Lăng Chủ tịch Hồ Chí Minh', tips: 'Đóng cửa thứ Hai và thứ Sáu hàng tuần; nên đến sớm buổi sáng, ăn mặc lịch sự.', address: 'Quảng trường Ba Đình, quận Ba Đình, Hà Nội', ticketPrice: 'Miễn phí (khách đoàn có nhu cầu thuyết minh cần đăng ký trước)' },
+      { name: 'Chùa Trấn Quốc', desc: 'Ngôi chùa cổ nhất Hà Nội, toạ lạc trên bán đảo nhỏ giữa Hồ Tây.', keyword: 'Chùa Trấn Quốc', tips: 'Cảnh đẹp nhất vào lúc hoàng hôn, nhìn ra mặt hồ.', address: 'Đường Thanh Niên, quận Tây Hồ, Hà Nội', ticketPrice: 'Miễn phí' }
     ],
     dinner: [
       { dish: 'Chả cá Lã Vọng', desc: 'Cá nướng cùng nghệ, thì là, ăn kèm bún và mắm tôm — món đặc sản trứ danh.', keyword: 'Chả cá Lã Vọng', priceRange: 'Khoảng 180.000đ - 250.000đ / suất', suggestedSpots: ['Chả cá Lã Vọng, số 14 phố Chả Cá, quận Hoàn Kiếm'] },
@@ -759,7 +761,9 @@ const ITINERARY_DATA = {
     ],
     morningVisit: [
       { name: 'Đại Nội Huế (Hoàng thành)', desc: 'Kinh thành triều Nguyễn, kiến trúc cung đình đồ sộ.', keyword: 'Đại Nội Huế', tips: 'Nên đi từ sớm vì khuôn viên rất rộng, cần nhiều thời gian.' },
-      { name: 'Chùa Thiên Mụ', desc: 'Ngôi chùa cổ biểu tượng của Huế bên dòng sông Hương.', keyword: 'Chùa Thiên Mụ', tips: 'Có thể kết hợp đi thuyền dọc sông Hương tới chùa.' }
+      { name: 'Chùa Thiên Mụ', desc: 'Ngôi chùa cổ biểu tượng của Huế bên dòng sông Hương.', keyword: 'Chùa Thiên Mụ', tips: 'Có thể kết hợp đi thuyền dọc sông Hương tới chùa.' },
+      { name: 'Lăng Khải Định', desc: 'Lăng tẩm mang phong cách kiến trúc Âu - Á giao thoa độc đáo nhất trong các lăng vua Nguyễn.', keyword: 'Lăng Khải Định', tips: 'Có nhiều bậc thang đá, nên đi giày thoải mái để leo lên khu chính điện.', address: 'Phường Thủy Bằng, quận Thuận Hóa, thành phố Huế', ticketPrice: 'Khoảng 150.000đ/người lớn, 30.000đ/trẻ em (1-12 tuổi)' },
+      { name: 'Chợ Đông Ba', desc: 'Khu chợ truyền thống lâu đời bên bờ sông Hương, nơi bán đặc sản và hàng thủ công Huế.', keyword: 'Chợ Đông Ba', tips: 'Kết hợp dạo bộ ra cầu Trường Tiền ngay gần đó.', address: 'Đường Trần Hưng Đạo, thành phố Huế', ticketPrice: 'Miễn phí vào cửa' }
     ],
     lunch: [
       { dish: 'Bánh khoái Huế', desc: 'Bánh khoái giòn nhân tôm thịt, chấm nước lèo gan tôm đặc trưng.', keyword: 'Bánh khoái Huế' },
@@ -788,7 +792,9 @@ const ITINERARY_DATA = {
     ],
     morningVisit: [
       { name: 'Vịnh Hạ Long', desc: 'Di sản thiên nhiên thế giới với hàng nghìn đảo đá vôi kỳ vĩ.', keyword: 'Vịnh Hạ Long', tips: 'Nên đi tàu tham quan từ sáng sớm để tránh nắng gắt.' },
-      { name: 'Hang Sửng Sốt', desc: 'Một trong những hang động đẹp và lớn nhất vịnh Hạ Long.', keyword: 'Hang Sửng Sốt', tips: 'Đường trong hang có bậc thang, nên đi giày thể thao.' }
+      { name: 'Hang Sửng Sốt', desc: 'Một trong những hang động đẹp và lớn nhất vịnh Hạ Long.', keyword: 'Hang Sửng Sốt', tips: 'Đường trong hang có bậc thang, nên đi giày thể thao.' },
+      { name: 'Yên Tử', desc: 'Quần thể chùa tháp linh thiêng gắn với Phật hoàng Trần Nhân Tông, giữa rừng núi hùng vĩ.', keyword: 'Yên Tử', tips: 'Có thể leo bộ hoặc đi cáp treo; nên tránh mùa lễ hội (tháng Giêng - tháng 3 âm lịch) nếu không thích đông đúc.', address: 'Phường Yên Tử, thành phố Uông Bí, tỉnh Quảng Ninh', ticketPrice: 'Vé thắng cảnh miễn phí (đến hết 31/12/2028); cáp treo khứ hồi khoảng 320.000đ - 390.000đ tuỳ tuyến' },
+      { name: 'Bảo tàng Quảng Ninh', desc: 'Công trình kiến trúc kính đen độc đáo bên bờ vịnh Hạ Long, trưng bày lịch sử - văn hoá vùng đất mỏ.', keyword: 'Bảo tàng Quảng Ninh', tips: 'Kết hợp tham quan Quảng trường 30/10 và Thư viện Quảng Ninh ngay bên cạnh.', address: 'Đường Trần Quốc Nghiễn, phường Hồng Gai, thành phố Hạ Long, tỉnh Quảng Ninh', ticketPrice: 'Khoảng 30.000đ - 40.000đ/người lớn (giá tham khảo, có thể thay đổi)' }
     ],
     lunch: [
       { dish: 'Chả mực Hạ Long', desc: 'Chả mực giã tay, chiên vàng giòn — đặc sản trứ danh nhất vùng.', keyword: 'Chả mực Hạ Long' },
@@ -817,7 +823,9 @@ const ITINERARY_DATA = {
     ],
     morningVisit: [
       { name: 'Động Tam Thanh - Nhị Thanh', desc: 'Quần thể hang động, đền chùa nổi tiếng giữa lòng thành phố.', keyword: 'Động Tam Thanh Lạng Sơn', tips: 'Mang theo đèn pin nhỏ nếu muốn khám phá sâu trong hang.' },
-      { name: 'Thành nhà Mạc Lạng Sơn', desc: 'Di tích thành cổ trên núi, view toàn cảnh thành phố.', keyword: 'Thành nhà Mạc Lạng Sơn', tips: 'Cần leo bậc thang khá dốc để lên tới thành.' }
+      { name: 'Thành nhà Mạc Lạng Sơn', desc: 'Di tích thành cổ trên núi, view toàn cảnh thành phố.', keyword: 'Thành nhà Mạc Lạng Sơn', tips: 'Cần leo bậc thang khá dốc để lên tới thành.' },
+      { name: 'Núi Mẫu Sơn', desc: 'Vùng núi cao hơn 1.500m, mệnh danh "xứ sở sương mù", mùa đông đôi khi có băng tuyết.', keyword: 'Núi Mẫu Sơn', tips: 'Cách trung tâm thành phố khoảng 30km, nên mang áo ấm nếu đi vào mùa đông.', address: 'Xã Mẫu Sơn, tỉnh Lạng Sơn (khu vực huyện Cao Lộc, Lộc Bình cũ)', ticketPrice: 'Miễn phí tham quan, có thể mất phí gửi xe nhỏ tuỳ điểm' },
+      { name: 'Đền Mẫu Đồng Đăng', desc: 'Ngôi đền linh thiêng bậc nhất xứ Lạng, gắn với tín ngưỡng thờ Mẫu, nằm gần cửa khẩu Hữu Nghị.', keyword: 'Đền Mẫu Đồng Đăng', tips: 'Đông khách nhất vào dịp đầu xuân (hội chính ngày 10 tháng Giêng âm lịch).', address: '61 Hoàng Văn Thụ, thị trấn Đồng Đăng, huyện Cao Lộc, tỉnh Lạng Sơn', ticketPrice: 'Miễn phí (tuỳ tâm công đức)' }
     ],
     lunch: [
       { dish: 'Vịt quay Lạng Sơn', desc: 'Vịt quay lá mắc mật, da giòn thơm đặc trưng xứ Lạng.', keyword: 'Vịt quay Lạng Sơn' },
@@ -846,7 +854,9 @@ const ITINERARY_DATA = {
     ],
     morningVisit: [
       { name: 'Thác Bản Giốc', desc: 'Một trong những thác nước tự nhiên đẹp nhất Đông Nam Á.', keyword: 'Thác Bản Giốc', tips: 'Mùa nước đổ đẹp nhất vào khoảng tháng 8-9.' },
-      { name: 'Động Ngườm Ngao', desc: 'Hang động nhũ đá kỳ vĩ gần khu vực thác Bản Giốc.', keyword: 'Động Ngườm Ngao', tips: 'Kết hợp tham quan cùng ngày với thác Bản Giốc.' }
+      { name: 'Động Ngườm Ngao', desc: 'Hang động nhũ đá kỳ vĩ gần khu vực thác Bản Giốc.', keyword: 'Động Ngườm Ngao', tips: 'Kết hợp tham quan cùng ngày với thác Bản Giốc.' },
+      { name: 'Núi Mắt Thần (Núi Thủng)', desc: 'Ngọn núi độc đáo với một hang thủng hình tròn trên đỉnh, ví như "con mắt" nhìn ra thung lũng.', keyword: 'Núi Mắt Thần Cao Bằng', tips: 'Nằm trong quần thể hồ Thang Hen, có thể kết hợp tham quan cùng ngày.', address: 'Xã Quốc Toản, huyện Trà Lĩnh, tỉnh Cao Bằng', ticketPrice: 'Miễn phí' },
+      { name: 'Khu di tích rừng Trần Hưng Đạo', desc: 'Nơi thành lập Đội Việt Nam Tuyên truyền Giải phóng quân, tiền thân Quân đội Nhân dân Việt Nam.', keyword: 'Khu di tích rừng Trần Hưng Đạo', tips: 'Phù hợp cho chuyến tham quan tìm hiểu lịch sử quân sự Việt Nam.', address: 'Xã Tam Kim, huyện Nguyên Bình, tỉnh Cao Bằng', ticketPrice: 'Miễn phí' }
     ],
     lunch: [
       { dish: 'Vịt quay 7 vị', desc: 'Vịt quay tẩm ướp bảy loại gia vị đặc trưng Cao Bằng.', keyword: 'Vịt quay 7 vị Cao Bằng' },
@@ -874,7 +884,9 @@ const ITINERARY_DATA = {
     ],
     morningVisit: [
       { name: 'Cầu kính Rồng Mây', desc: 'Cầu kính trên cao với view núi non hùng vĩ vùng Tây Bắc.', keyword: 'Cầu kính Rồng Mây', tips: 'Nên đi vào ngày trời quang để ngắm toàn cảnh rõ nhất.' },
-      { name: 'Bản Sin Suối Hồ', desc: 'Bản du lịch cộng đồng người Mông giữa núi rừng.', keyword: 'Bản Sin Suối Hồ', tips: 'Có thể ở lại homestay để trải nghiệm văn hoá bản địa trọn vẹn hơn.' }
+      { name: 'Bản Sin Suối Hồ', desc: 'Bản du lịch cộng đồng người Mông giữa núi rừng.', keyword: 'Bản Sin Suối Hồ', tips: 'Có thể ở lại homestay để trải nghiệm văn hoá bản địa trọn vẹn hơn.' },
+      { name: 'Cao nguyên Sìn Hồ', desc: 'Cao nguyên mát mẻ quanh năm, mệnh danh "Sa Pa thứ hai" của Tây Bắc.', keyword: 'Cao nguyên Sìn Hồ', tips: 'Kết hợp tham quan chợ phiên và tắm lá thuốc người Dao tại đây.', address: 'Huyện Sìn Hồ, tỉnh Lai Châu', ticketPrice: 'Miễn phí' },
+      { name: 'Chợ phiên San Thàng', desc: 'Phiên chợ vùng cao họp định kỳ, nơi giao thương và giao lưu văn hoá các dân tộc.', keyword: 'Chợ phiên San Thàng', tips: 'Nên hỏi trước lịch họp chợ để không bỏ lỡ.', address: 'Xã San Thàng, thành phố Lai Châu, tỉnh Lai Châu', ticketPrice: 'Miễn phí' }
     ],
     lunch: [
       { dish: 'Lợn cắp nách', desc: 'Thịt lợn bản nhỏ hấp hoặc nướng, thịt chắc ít mỡ.', keyword: 'Lợn cắp nách Lai Châu' },
@@ -902,8 +914,10 @@ const ITINERARY_DATA = {
       { dish: 'Bánh khẩu sli', desc: 'Bánh nếp giòn ngọt, món quà sáng quen thuộc vùng cao.', keyword: 'Bánh khẩu sli' }
     ],
     morningVisit: [
-      { name: 'Đồi A1', desc: 'Cứ điểm quan trọng trong chiến dịch Điện Biên Phủ lịch sử.', keyword: 'Đồi A1 Điện Biên', tips: 'Nên tìm hiểu trước lịch sử chiến dịch để chuyến đi ý nghĩa hơn.' },
-      { name: 'Bảo tàng Chiến thắng Điện Biên Phủ', desc: 'Trưng bày hiện vật, tranh tường quy mô lớn về chiến dịch.', keyword: 'Bảo tàng Chiến thắng Điện Biên Phủ', tips: 'Dành ít nhất 1-1.5 giờ để tham quan đầy đủ.' }
+      { name: 'Đồi A1', desc: 'Cứ điểm quan trọng trong chiến dịch Điện Biên Phủ lịch sử.', keyword: 'Đồi A1 Điện Biên', tips: 'Nên tìm hiểu trước lịch sử chiến dịch để chuyến đi ý nghĩa hơn.', address: 'Phường Mường Thanh, thành phố Điện Biên Phủ, tỉnh Điện Biên', ticketPrice: 'Miễn phí (theo chính sách miễn vé các di tích Chiến trường Điện Biên Phủ)' },
+      { name: 'Bảo tàng Chiến thắng Điện Biên Phủ', desc: 'Trưng bày hiện vật, tranh tường quy mô lớn về chiến dịch.', keyword: 'Bảo tàng Chiến thắng Điện Biên Phủ', tips: 'Dành ít nhất 1-1.5 giờ để tham quan đầy đủ.', ticketPrice: 'Miễn phí (theo chính sách miễn vé các di tích Chiến trường Điện Biên Phủ)' },
+      { name: 'Cánh đồng Mường Thanh', desc: 'Cánh đồng lúa lớn nhất vùng Tây Bắc, cảnh sắc yên bình bao quanh thành phố.', keyword: 'Cánh đồng Mường Thanh', tips: 'Mùa lúa chín (khoảng tháng 9-10) là thời điểm đẹp nhất để ngắm cảnh.', address: 'Thành phố Điện Biên Phủ, tỉnh Điện Biên', ticketPrice: 'Miễn phí' },
+      { name: 'Đồi Độc Lập', desc: 'Cứ điểm quan trọng trong chiến dịch Điện Biên Phủ, nơi diễn ra trận đánh mở màn then chốt.', keyword: 'Đồi Độc Lập Điện Biên', tips: 'Có thể kết hợp tham quan cùng đồi A1 và Bảo tàng Chiến thắng.', address: 'Thành phố Điện Biên Phủ, tỉnh Điện Biên', ticketPrice: 'Miễn phí (theo chính sách miễn vé các di tích Chiến trường Điện Biên Phủ)' }
     ],
     lunch: [
       { dish: 'Gà đen nướng mắc khén', desc: 'Gà đen bản địa nướng cùng mắc khén, hạt dổi đặc trưng Tây Bắc.', keyword: 'Gà đen nướng mắc khén' },
@@ -911,8 +925,8 @@ const ITINERARY_DATA = {
       { dish: 'Cá suối nướng', desc: 'Cá bắt từ suối vùng cao Điện Biên, nướng thơm than hoa.', keyword: 'Cá suối nướng Điện Biên' }
     ],
     afternoonVisit: [
-      { name: 'Tượng đài Chiến thắng Điện Biên Phủ', desc: 'Tượng đài lớn trên đồi D1, nhìn bao quát thành phố.', keyword: 'Tượng đài Chiến thắng Điện Biên Phủ', tips: 'View đẹp để ngắm hoàng hôn trên thành phố Điện Biên Phủ.' },
-      { name: 'Hầm Đờ Cát', desc: 'Sở chỉ huy quân Pháp được giữ nguyên trạng lịch sử.', keyword: 'Hầm Đờ Cát', tips: 'Kết hợp tham quan cùng đồi A1 gần đó.' }
+      { name: 'Tượng đài Chiến thắng Điện Biên Phủ', desc: 'Tượng đài lớn trên đồi D1, nhìn bao quát thành phố.', keyword: 'Tượng đài Chiến thắng Điện Biên Phủ', tips: 'View đẹp để ngắm hoàng hôn trên thành phố Điện Biên Phủ.', ticketPrice: 'Miễn phí' },
+      { name: 'Hầm Đờ Cát', desc: 'Sở chỉ huy quân Pháp được giữ nguyên trạng lịch sử.', keyword: 'Hầm Đờ Cát', tips: 'Kết hợp tham quan cùng đồi A1 gần đó.', ticketPrice: 'Miễn phí (theo chính sách miễn vé các di tích Chiến trường Điện Biên Phủ)' }
     ],
     dinner: [
       { dish: 'Rêu đá nướng', desc: 'Rêu suối gói lá dong nướng, đặc sản vùng núi phía Bắc.', keyword: 'Rêu đá nướng Điện Biên' },
@@ -932,7 +946,8 @@ const ITINERARY_DATA = {
     ],
     morningVisit: [
       { name: 'Cao nguyên Mộc Châu', desc: 'Cao nguyên nổi tiếng với đồi chè trái tim và đồng cỏ xanh mướt.', keyword: 'Cao nguyên Mộc Châu', tips: 'Mùa hoa cải, hoa mận nở (khoảng tháng 12-1) rất đẹp.' },
-      { name: 'Nhà tù Sơn La', desc: 'Di tích lịch sử từng giam giữ nhiều chiến sĩ cách mạng.', keyword: 'Nhà tù Sơn La', tips: 'Phù hợp cho chuyến tham quan tìm hiểu lịch sử.' }
+      { name: 'Nhà tù Sơn La', desc: 'Di tích lịch sử từng giam giữ nhiều chiến sĩ cách mạng.', keyword: 'Nhà tù Sơn La', tips: 'Phù hợp cho chuyến tham quan tìm hiểu lịch sử.' },
+      { name: 'Cầu kính Bạch Long (Mộc Châu Island)', desc: 'Cầu đáy kính dài nhất thế giới (632m), view thung lũng và núi đá vôi hùng vĩ.', keyword: 'Cầu kính Bạch Long Mộc Châu', tips: 'Nên đặt vé trước qua ứng dụng để tránh xếp hàng vào cao điểm.', address: 'Bản Lùn, xã Mường Sang, huyện Mộc Châu, tỉnh Sơn La', ticketPrice: 'Khoảng 550.000đ/người lớn ngày thường (650.000đ cuối tuần, lễ Tết)' }
     ],
     lunch: [
       { dish: 'Bê chao Mộc Châu', desc: 'Thịt bê non chao giòn, chấm tương gừng đặc trưng Mộc Châu.', keyword: 'Bê chao Mộc Châu' },
@@ -941,7 +956,8 @@ const ITINERARY_DATA = {
     ],
     afternoonVisit: [
       { name: 'Thác Dải Yếm', desc: 'Thác nước đẹp gắn với truyền thuyết tình yêu của người Thái.', keyword: 'Thác Dải Yếm', tips: 'Mùa mưa nước thác đổ mạnh và đẹp hơn.' },
-      { name: 'Rừng thông bản Áng', desc: 'Rừng thông xanh mát cùng hồ nước nhỏ giữa cao nguyên.', keyword: 'Rừng thông bản Áng', tips: 'Thích hợp cắm trại hoặc chụp ảnh buổi chiều.' }
+      { name: 'Rừng thông bản Áng', desc: 'Rừng thông xanh mát cùng hồ nước nhỏ giữa cao nguyên.', keyword: 'Rừng thông bản Áng', tips: 'Thích hợp cắm trại hoặc chụp ảnh buổi chiều.' },
+      { name: 'Hang Dơi Mộc Châu (Động Sơn Mộc Hương)', desc: 'Hang động nhũ đá kỳ vĩ trên núi, danh lam thắng cảnh cấp quốc gia, nhìn được toàn cảnh thị trấn Mộc Châu.', keyword: 'Hang Dơi Mộc Châu', tips: 'Phải leo khoảng 240 bậc thang để lên tới cửa hang, nên mang giày thể thao.', address: 'Quốc lộ 6, thị trấn Mộc Châu, huyện Mộc Châu, tỉnh Sơn La', ticketPrice: 'Khoảng 10.000đ/vé' }
     ],
     dinner: [
       { dish: 'Thịt trâu gác bếp', desc: 'Thịt trâu hun khói, chấm tương ớt hoặc chẩm chéo.', keyword: 'Thịt trâu gác bếp Sơn La' },
@@ -960,7 +976,9 @@ const ITINERARY_DATA = {
     ],
     morningVisit: [
       { name: 'Thành nhà Hồ', desc: 'Di sản UNESCO, toà thành đá cổ độc đáo của Việt Nam.', keyword: 'Thành nhà Hồ', tips: 'Kết hợp tham quan Bảo tàng Thành nhà Hồ gần đó.' },
-      { name: 'Suối cá thần Cẩm Lương', desc: 'Suối nước trong với hàng nghìn con cá bơi lội, gắn nhiều truyền thuyết.', keyword: 'Suối cá thần Cẩm Lương', tips: 'Không nên bắt hoặc ăn cá tại đây theo quan niệm địa phương.' }
+      { name: 'Suối cá thần Cẩm Lương', desc: 'Suối nước trong với hàng nghìn con cá bơi lội, gắn nhiều truyền thuyết.', keyword: 'Suối cá thần Cẩm Lương', tips: 'Không nên bắt hoặc ăn cá tại đây theo quan niệm địa phương.' },
+      { name: 'Khu di tích Lam Kinh', desc: 'Kinh đô thứ hai của nhà Hậu Lê, quê hương khởi nghĩa Lam Sơn của vua Lê Lợi.', keyword: 'Khu di tích Lam Kinh', tips: 'Đóng cửa thứ Hai hàng tuần để bảo dưỡng, nên kiểm tra trước khi đến.', address: 'Xã Xuân Lam, huyện Thọ Xuân, tỉnh Thanh Hóa', ticketPrice: 'Khoảng 30.000đ/người' },
+      { name: 'Pù Luông', desc: 'Khu bảo tồn thiên nhiên với ruộng bậc thang, rừng nguyên sinh và bản làng người Thái yên bình.', keyword: 'Pù Luông', tips: 'Mùa lúa chín (tháng 5-6 và tháng 9-10) đẹp nhất; nên đi cùng homestay địa phương.', address: 'Xã Cổ Lũng, huyện Bá Thước, tỉnh Thanh Hóa', ticketPrice: 'Miễn phí tham quan khu vực chung (một số dịch vụ như bè tre, homestay có phí riêng)' }
     ],
     lunch: [
       { dish: 'Chả tôm Thanh Hóa', desc: 'Chả tôm nướng lá chuối, món đặc sản nổi tiếng của xứ Thanh.', keyword: 'Chả tôm Thanh Hóa' },
@@ -988,7 +1006,9 @@ const ITINERARY_DATA = {
     ],
     morningVisit: [
       { name: 'Khu di tích Kim Liên (Làng Sen quê Bác)', desc: 'Quê hương Chủ tịch Hồ Chí Minh, không gian làng quê mộc mạc.', keyword: 'Khu di tích Kim Liên', tips: 'Nên tìm hiểu trước về tiểu sử Bác Hồ để chuyến đi ý nghĩa hơn.' },
-      { name: 'Đền Cuông', desc: 'Đền thờ An Dương Vương gắn với truyền thuyết Mỵ Châu - Trọng Thuỷ.', keyword: 'Đền Cuông', tips: 'Ăn mặc lịch sự khi vào khu vực đền.' }
+      { name: 'Đền Cuông', desc: 'Đền thờ An Dương Vương gắn với truyền thuyết Mỵ Châu - Trọng Thuỷ.', keyword: 'Đền Cuông', tips: 'Ăn mặc lịch sự khi vào khu vực đền.' },
+      { name: 'Thành cổ Vinh', desc: 'Toà thành cổ hình lục giác, di tích lịch sử - kiến trúc quân sự triều Nguyễn giữa lòng thành phố Vinh.', keyword: 'Thành cổ Vinh', tips: 'Không gian yên tĩnh, phù hợp dạo bộ buổi sáng.', address: 'Trung tâm thành phố Vinh, tỉnh Nghệ An', ticketPrice: 'Miễn phí' },
+      { name: 'Đền thờ vua Quang Trung', desc: 'Đền thờ Hoàng đế Quang Trung trên núi Dũng Quyết, giữa rừng thông thơ mộng nhìn ra thành phố Vinh.', keyword: 'Đền thờ vua Quang Trung', tips: 'Đi bộ khoảng 1km đường núi quanh co để lên tới đền.', address: 'Phường Trung Đô, thành phố Vinh, tỉnh Nghệ An', ticketPrice: 'Miễn phí (tuỳ tâm công đức)' }
     ],
     lunch: [
       { dish: 'Lươn om chuối đậu', desc: 'Lươn om cùng chuối xanh, đậu phụ, nghệ tươi đậm đà.', keyword: 'Lươn om chuối đậu' },
@@ -1016,7 +1036,9 @@ const ITINERARY_DATA = {
     ],
     morningVisit: [
       { name: 'Khu di tích Nguyễn Du', desc: 'Khu lưu niệm Đại thi hào Nguyễn Du, tác giả Truyện Kiều.', keyword: 'Khu di tích Nguyễn Du', tips: 'Phù hợp cho ai yêu thích văn học, tìm hiểu về Truyện Kiều.' },
-      { name: 'Chùa Hương Tích Hà Tĩnh', desc: 'Ngôi chùa cổ trên núi Hồng Lĩnh, còn gọi là "Hoan Châu đệ nhất danh lam".', keyword: 'Chùa Hương Tích Hà Tĩnh', tips: 'Có thể đi cáp treo lên chùa để đỡ mất sức leo núi.' }
+      { name: 'Chùa Hương Tích Hà Tĩnh', desc: 'Ngôi chùa cổ trên núi Hồng Lĩnh, còn gọi là "Hoan Châu đệ nhất danh lam".', keyword: 'Chùa Hương Tích Hà Tĩnh', tips: 'Có thể đi cáp treo lên chùa để đỡ mất sức leo núi.' },
+      { name: 'Hoành Sơn Quan (Đèo Ngang)', desc: 'Cửa ải cổ trên đỉnh đèo Ngang, ranh giới lịch sử giữa Hà Tĩnh và Quảng Bình, view biển và núi hùng vĩ.', keyword: 'Hoành Sơn Quan Đèo Ngang', tips: 'Nên dừng chân ngắm cảnh vào buổi sáng sớm để tránh nắng gắt.', address: 'Thị xã Kỳ Anh, tỉnh Hà Tĩnh (ranh giới Hà Tĩnh - Quảng Bình cũ)', ticketPrice: 'Miễn phí' },
+      { name: 'Hồ Kẻ Gỗ', desc: 'Hồ nước ngọt nhân tạo lớn nhất Hà Tĩnh giữa khu bảo tồn thiên nhiên, cảnh sắc núi rừng thơ mộng.', keyword: 'Hồ Kẻ Gỗ', tips: 'Có thể kết hợp viếng đền thờ cố Tổng Bí thư Lê Duẩn gần đó.', address: 'Xã Cẩm Mỹ, huyện Cẩm Xuyên, tỉnh Hà Tĩnh', ticketPrice: 'Miễn phí tham quan khu vực chung' }
     ],
     lunch: [
       { dish: 'Bún bò Đò Trai', desc: 'Bún bò kiểu Hà Tĩnh, nước dùng đậm đà đặc trưng.', keyword: 'Bún bò Đò Trai' },
