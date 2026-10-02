@@ -65,6 +65,7 @@
   var userAccuracyCircle = null;
   var destMarker = null;
   var routeLine = null;
+  var dayLayer = null; // lớp đánh số các điểm của tuyến trong ngày
   var userLatLng = null;
   var watchId = null;
   var searchTimer = null;
@@ -529,6 +530,7 @@
   function clearDestination() {
     if (destMarker) { map.removeLayer(destMarker); destMarker = null; }
     if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
+    if (dayLayer) { map.removeLayer(dayLayer); dayLayer = null; }
     els.routePanel.hidden = true;
   }
 
@@ -609,6 +611,85 @@
       locateUser(function () { fetchRoute(userLatLng, destLatLng); });
     }
   }
+
+
+  /* -------------------- Tuyến nhiều điểm cho một ngày lịch trình -------------------- */
+
+  /**
+   * stops: [{ name, lat, lng }] theo thứ tự ghé thăm. Chuyển sang tab Bản đồ, đánh số các
+   * điểm và vẽ một tuyến đi xe qua tất cả (OSRM hỗ trợ nhiều điểm trung gian).
+   */
+  function T(vi) { return window.VNI18n ? window.VNI18n.t(vi) : vi; }
+
+  function showDayRoute(stops, title) {
+    if (!stops || stops.length < 2) return;
+    var tab = document.querySelector('.sh-tab[data-panel="panel-maps"]');
+    if (tab) tab.click();
+
+    var tries = 0;
+    (function waitForMap() {
+      if (map) { drawDay(); return; }
+      if (++tries > 50) return;
+      setTimeout(waitForMap, 100);
+    })();
+
+    function drawDay() {
+      clearDestination();
+      dayLayer = L.layerGroup().addTo(map);
+      var pts = [];
+      stops.forEach(function (st, i) {
+        var icon = L.divIcon({
+          className: 'vnmap-stop-marker',
+          html: '<span>' + (i + 1) + '</span>',
+          iconSize: [28, 28],
+          iconAnchor: [14, 14]
+        });
+        L.marker([st.lat, st.lng], { icon: icon }).bindPopup(escapeHtml(st.name)).addTo(dayLayer);
+        pts.push([st.lat, st.lng]);
+      });
+      map.fitBounds(L.latLngBounds(pts), { padding: [48, 48] });
+      setTimeout(function () { map.invalidateSize(); }, 150);
+
+      showLoading(true);
+      els.loadingText.textContent = T('Đang tìm tuyến đường trong ngày…');
+      var coords = stops.map(function (st) { return st.lng + ',' + st.lat; }).join(';');
+      var url = 'https://router.project-osrm.org/route/v1/driving/' + coords +
+        '?overview=full&geometries=geojson&steps=false&alternatives=false';
+
+      fetch(url)
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          showLoading(false);
+          if (data.code !== 'Ok' || !data.routes || !data.routes.length) {
+            showRouteMessage(T('Không tìm thấy đường đi nối các điểm trong ngày.'));
+            return;
+          }
+          var route = data.routes[0];
+          routeLine = L.polyline(route.geometry.coordinates.map(function (c) { return [c[1], c[0]]; }), {
+            color: getCssVar('--vn-primary', '#0ea5e9'), weight: 5, opacity: 0.85, lineJoin: 'round'
+          }).addTo(map);
+          map.fitBounds(routeLine.getBounds(), { padding: [48, 48] });
+
+          els.routeSummary.innerHTML =
+            '<div class="vnmap-route-distance">' + formatDistance(route.distance) + '</div>' +
+            '<div class="vnmap-route-duration">' + formatDuration(route.duration) + ' · ' +
+            escapeHtml(title || T('tuyến trong ngày')) + '</div>';
+
+          els.routeSteps.innerHTML = (route.legs || []).map(function (leg, i) {
+            return '<li class="vnmap-step"><span class="vnmap-step-text">' +
+              (i + 1) + '. ' + escapeHtml(stops[i].name) + ' → ' + (i + 2) + '. ' + escapeHtml(stops[i + 1].name) +
+              '</span><span class="vnmap-step-dist">' + formatDistance(leg.distance) + ' · ' + formatDuration(leg.duration) + '</span></li>';
+          }).join('');
+          els.routePanel.hidden = false;
+        })
+        .catch(function () {
+          showLoading(false);
+          showRouteMessage(T('Có lỗi khi tải tuyến đường, vui lòng thử lại.'));
+        });
+    }
+  }
+
+  window.VNMaps = { showDayRoute: showDayRoute };
 
   /* -------------------- Gắn sự kiện giao diện -------------------- */
 

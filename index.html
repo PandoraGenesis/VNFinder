@@ -7,6 +7,23 @@
   <title>VNFinder - Nền Tảng Du Lịch AI Đa Vùng Tại Việt Nam</title>
   <meta name="description"
     content="VNFinder - trợ lý du lịch AI đồng hành cùng bạn khám phá Việt Nam, từ địa đầu Hà Giang đến mũi Cà Mau.">
+  <meta name="theme-color" content="#C62828">
+  <link rel="canonical" href="https://pandoragenesis.github.io/VNFinder/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="VNFinder">
+  <meta property="og:title" content="VNFinder - Trợ lý lập lịch trình du lịch Việt Nam">
+  <meta property="og:description" content="Chọn điểm đến, xem thời tiết thật, nhận lịch trình theo sở thích và vẽ tuyến đường trên bản đồ. Dự án dự thi Gia Lai Youth HackAIthon 2026.">
+  <meta property="og:url" content="https://pandoragenesis.github.io/VNFinder/">
+  <meta property="og:image" content="https://pandoragenesis.github.io/VNFinder/assets/img/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Cảnh biển miền Trung Việt Nam">
+  <meta property="og:locale" content="vi_VN">
+  <meta property="og:locale:alternate" content="en_US">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="VNFinder - Trợ lý lập lịch trình du lịch Việt Nam">
+  <meta name="twitter:description" content="Lịch trình du lịch Việt Nam theo sở thích, thời tiết thật và bản đồ chỉ đường.">
+  <meta name="twitter:image" content="https://pandoragenesis.github.io/VNFinder/assets/img/og-image.jpg">
   <link rel="icon" type="image/png" href="assets/img/logo.png">
   <link rel="apple-touch-icon" href="assets/img/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,371 +32,27 @@
     href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500;600;700;800;900&family=Sarabun:wght@400;500;600&display=swap"
     rel="stylesheet">
   <!-- style.css giữ nguyên bản gốc từ repo — chỉ dùng cho tab Lịch trình -->
-  <link rel="stylesheet" href="css/style.css?v=1">
+  <link rel="stylesheet" href="css/style.css?v=2">
   <!-- itinerary.css: bổ sung giao diện lưới thẻ nhiều cột, huy hiệu phân loại và lightbox cho kết quả Lịch trình -->
   <link rel="stylesheet" href="css/itinerary.css?v=1">
+  <link rel="stylesheet" href="css/chat.css?v=2">
   <!-- intro.css: khung trang mới (nav, hero, khối nội dung Giới thiệu) -->
-  <link rel="stylesheet" href="css/intro.css?v=1">
+  <link rel="stylesheet" href="css/intro.css?v=2">
   <!-- guide.css: giao diện tab Cẩm nang (Bách khoa toàn thư + định vị địa danh) -->
   <link rel="stylesheet" href="css/guide.css?v=1">
   <!-- Leaflet: thư viện bản đồ tương tác dùng cho tab Maps -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
   <!-- maps.css: giao diện bản đồ chỉ đường (Leaflet + Google Maps style) -->
-  <link rel="stylesheet" href="css/maps.css?v=2">
+  <link rel="stylesheet" href="css/maps.css?v=3">
   <!-- auth.css: giao diện trang Đăng nhập / Đăng ký -->
   <link rel="stylesheet" href="css/auth.css?v=1">
   <!-- checkin.css: giao diện tab Check-in (danh sách lịch trình đã lưu) -->
   <link rel="stylesheet" href="css/checkin.css?v=1">
   <!-- Flatpickr CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-  <style>
-    /* Tùy chỉnh Flatpickr để giống ảnh thiết kế */
-    .flatpickr-calendar {
-      font-family: 'Be Vietnam Pro', sans-serif;
-      border: none !important;
-      border-radius: 16px !important;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15) !important;
-      padding: 10px;
-      width: 320px !important;
-      max-width: calc(100vw - 24px) !important;
-      z-index: 999999 !important;
-    }
+  <link rel="stylesheet" href="vendor/flatpickr/flatpickr.min.css">
+  <!-- custom.css: Tùy chỉnh Flatpickr + Location Picker -->
+  <link rel="stylesheet" href="css/custom.css?v=3">
 
-    @media (max-width: 768px) {
-      .flatpickr-calendar.open {
-        left: 50% !important;
-        right: auto !important;
-        transform: translateX(-50%) !important;
-      }
-    }
-
-    .flatpickr-days,
-    .dayContainer {
-      width: 100% !important;
-      min-width: 0 !important;
-      max-width: 100% !important;
-    }
-
-    .flatpickr-months {
-      margin-bottom: 10px;
-    }
-
-    .flatpickr-month {
-      height: 40px !important;
-    }
-
-    .flatpickr-prev-month,
-    .flatpickr-next-month {
-      display: flex !important;
-      align-items: center;
-      justify-content: center;
-      height: 40px !important;
-      top: 10px !important;
-      padding: 0 10px !important;
-    }
-
-    .flatpickr-prev-month svg,
-    .flatpickr-next-month svg {
-      vertical-align: middle;
-    }
-
-    .flatpickr-current-month {
-      font-size: 1.15rem !important;
-      font-weight: 600 !important;
-      padding-top: 0 !important;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 40px;
-    }
-
-    .flatpickr-current-month .flatpickr-monthDropdown-months {
-      font-weight: 600;
-      font-size: 1.15rem !important;
-      margin-right: 8px;
-      padding: 2px 4px;
-      margin-top: 0;
-      margin-bottom: 0;
-    }
-
-    .flatpickr-current-month .numInputWrapper {
-      width: 7ch;
-    }
-
-    span.flatpickr-weekday {
-      font-weight: 500;
-      color: #64748b;
-      font-size: 0.9rem;
-    }
-
-    .flatpickr-day {
-      border-radius: 50% !important;
-      font-weight: 500;
-      color: #1e293b;
-      font-size: 1rem;
-      height: 40px;
-      line-height: 40px;
-      max-width: 40px;
-    }
-
-    .flatpickr-day.selected,
-    .flatpickr-day.today {
-      background: var(--vn-primary) !important;
-      border-color: var(--vn-primary) !important;
-      color: #fff !important;
-    }
-
-    .flatpickr-day:hover:not(.selected):not(.disabled) {
-      background: #f1f5f9;
-      border-color: transparent;
-    }
-
-    .flatpickr-day.flatpickr-disabled,
-    .flatpickr-day.flatpickr-disabled:hover {
-      color: #cbd5e1 !important;
-    }
-
-    .flatpickr-day.prevMonthDay,
-    .flatpickr-day.nextMonthDay {
-      color: #94a3b8;
-    }
-
-    .flatpickr-buttons {
-      display: flex;
-      justify-content: flex-end;
-      gap: 16px;
-      padding: 12px 10px 4px 10px;
-      border-top: 1px solid #f1f5f9;
-      margin-top: 8px;
-    }
-
-    .flatpickr-buttons button {
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-size: 0.95rem;
-      font-weight: 500;
-      font-family: inherit;
-    }
-
-    .btn-clear {
-      color: #64748b;
-    }
-
-    .btn-clear:hover {
-      color: #334155;
-    }
-
-    .btn-today {
-      color: var(--vn-primary);
-    }
-
-    .btn-today:hover {
-      color: var(--vn-primary-dark);
-    }
-
-    /* Styles for 2-Level Location Picker */
-    .loc-panel {
-      display: flex;
-      flex-direction: column;
-      max-height: 500px;
-      width: 100%;
-    }
-
-    .loc-header {
-      display: flex;
-      align-items: center;
-      padding: 12px;
-      border-bottom: 1px solid #f1f5f9;
-      gap: 8px;
-    }
-
-    .loc-back-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 4px;
-      color: #64748b;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 4px;
-    }
-
-    .loc-back-btn:hover {
-      background: #f1f5f9;
-      color: #1e293b;
-    }
-
-    .loc-search {
-      display: flex;
-      align-items: center;
-      flex: 1;
-      background: #f8fafc;
-      border-radius: 8px;
-      padding: 6px 10px;
-      gap: 8px;
-    }
-
-    .loc-search input {
-      border: none;
-      background: transparent;
-      outline: none;
-      width: 100%;
-      font-size: 0.9rem;
-      font-family: inherit;
-    }
-
-    .loc-search input:focus,
-    .loc-search input:focus-visible {
-      outline: none !important;
-    }
-
-    .loc-body {
-      display: flex;
-      flex: 1;
-      position: relative;
-      background: #fff;
-      border-bottom-left-radius: 12px;
-      border-bottom-right-radius: 12px;
-      height: 350px;
-      overflow-y: auto;
-      align-items: stretch;
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
-
-    .loc-body::-webkit-scrollbar {
-      display: none;
-    }
-
-    .dest-body {
-      display: flex;
-      position: relative;
-      background: #fff;
-      border-bottom-left-radius: 12px;
-      border-bottom-right-radius: 12px;
-      max-height: 350px;
-      overflow-y: auto;
-      align-items: stretch;
-    }
-
-    .loc-list,
-    .combobox-list {
-      flex: 1;
-      padding: 0 12px 12px 12px;
-    }
-
-    .loc-group-title {
-      font-weight: 700;
-      color: var(--vn-primary);
-      padding: 12px 8px 4px 8px;
-      margin-top: 0;
-      position: sticky;
-      top: -1px;
-      background: rgba(255, 255, 255, 0.9);
-      backdrop-filter: blur(4px);
-      z-index: 2;
-    }
-
-    .loc-item {
-      display: block;
-      width: 100%;
-      text-align: left;
-      padding: 10px 12px;
-      border: none;
-      background: none;
-      cursor: pointer;
-      font-size: 0.95rem;
-      border-radius: 6px;
-      color: #334155;
-    }
-
-    .loc-item:hover {
-      background: #f1f5f9;
-      color: var(--vn-primary);
-    }
-
-    .loc-az {
-      width: 24px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      align-self: stretch;
-      justify-content: space-evenly;
-      padding: 4px 0;
-      background: rgba(255, 255, 255, 0.5);
-      z-index: 10;
-      position: sticky;
-      top: 0;
-      height: auto;
-    }
-
-    .loc-az::-webkit-scrollbar {
-      display: none;
-    }
-
-    .az-btn {
-      background: none;
-      border: none;
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      font-weight: 1000;
-      line-height: 1;
-      min-height: 0;
-      color: var(--vn-primary);
-      padding: 0;
-      margin: 0;
-      cursor: pointer;
-      width: 100%;
-    }
-
-
-    .az-btn:hover {
-      color: var(--vn-primary-dark);
-      transform: scale(1.2);
-    }
-
-    .loc-az-bubble {
-      position: absolute;
-      right: 44px;
-      width: 50px;
-      height: 50px;
-      background-color: #4285F4;
-      /* Matching the blue in the image */
-      color: white;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.6rem;
-      font-weight: 600;
-      pointer-events: none;
-      opacity: 0;
-      transform: translateY(-50%) scale(0.5);
-      transition: opacity 0.15s ease-out, transform 0.15s ease-out;
-      z-index: 20;
-      box-shadow: 0 4px 10px rgba(66, 133, 244, 0.4);
-    }
-
-    .loc-az-bubble.show {
-      opacity: 1;
-      transform: translateY(-50%) scale(1);
-    }
-
-    .loc-loading,
-    .loc-error,
-    .loc-empty {
-      padding: 20px;
-      text-align: center;
-      color: #64748b;
-      font-size: 0.9rem;
-    }
-  </style>
 </head>
 
 <body class="sh-app">
@@ -429,7 +102,7 @@
     <section id="panel-home" class="sh-panel">
 
       <div class="sh-hero">
-        <img class="sh-hero__img" src="assets/img/Hồ Gươm.jpg" alt="Hồ Gươm và Tháp Rùa, Hà Nội">
+        <img fetchpriority="high" decoding="async" class="sh-hero__img" src="assets/img/ho-guom.webp" alt="Hồ Gươm và Tháp Rùa, Hà Nội">
         <div class="sh-hero__scrim" aria-hidden="true"></div>
         <div class="sh-hero__content">
           <h1 class="sh-hero__title">VNFINDER</h1>
@@ -541,7 +214,7 @@
             <!-- 1. Cổ đại / Tự nhiên -->
             <div class="ora-tour-card" data-region="mien-bac">
               <div class="ora-tour-card__image-wrapper">
-                <img src="assets/img/Vịnh Hạ Long.jpg" alt="Vịnh Hạ Long" class="ora-tour-card__image">
+                <img decoding="async" loading="lazy" src="assets/img/vinh-ha-long.webp" alt="Vịnh Hạ Long" class="ora-tour-card__image">
                 <span class="ora-tour-badge badge-coral">Miền Bắc</span>
               </div>
               <div class="ora-tour-card__content">
@@ -554,7 +227,7 @@
             <!-- 2. Cổ đại / Tự nhiên -->
             <div class="ora-tour-card" data-region="mien-nam">
               <div class="ora-tour-card__image-wrapper">
-                <img src="assets/img/Phu Quoc.jpg" alt="Phú Quốc" class="ora-tour-card__image">
+                <img decoding="async" loading="lazy" src="assets/img/phu-quoc.webp" alt="Phú Quốc" class="ora-tour-card__image">
                 <span class="ora-tour-badge badge-jade">Miền Nam</span>
               </div>
               <div class="ora-tour-card__content">
@@ -567,7 +240,7 @@
             <!-- 3. Thời đại Hùng Vương (~2000 TCN) -->
             <div class="ora-tour-card" data-region="mien-bac">
               <div class="ora-tour-card__image-wrapper">
-                <img src="assets/img/Den Hung.jpg" alt="Đền Hùng" class="ora-tour-card__image">
+                <img decoding="async" loading="lazy" src="assets/img/den-hung.webp" alt="Đền Hùng" class="ora-tour-card__image">
                 <span class="ora-tour-badge badge-coral">Miền Bắc</span>
               </div>
               <div class="ora-tour-card__content">
@@ -580,7 +253,7 @@
             <!-- 7. Thế kỷ 16-17 (Thương cảng Hội An) -->
             <div class="ora-tour-card" data-region="mien-trung">
               <div class="ora-tour-card__image-wrapper">
-                <img src="assets/img/Phố cổ Hội An.jpg" alt="Hội An" class="ora-tour-card__image">
+                <img decoding="async" loading="lazy" src="assets/img/pho-co-hoi-an.webp" alt="Hội An" class="ora-tour-card__image">
                 <span class="ora-tour-badge badge-gold">Miền Trung</span>
               </div>
               <div class="ora-tour-card__content">
@@ -593,7 +266,7 @@
             <!-- 8. Năm 1698 (Thành lập Sài Gòn) -->
             <div class="ora-tour-card" data-region="mien-nam">
               <div class="ora-tour-card__image-wrapper">
-                <img src="assets/img/TP HCM.jpg" alt="TP HCM" class="ora-tour-card__image">
+                <img decoding="async" loading="lazy" src="assets/img/tp-hcm.webp" alt="TP HCM" class="ora-tour-card__image">
                 <span class="ora-tour-badge badge-jade">Miền Nam</span>
               </div>
               <div class="ora-tour-card__content">
@@ -606,7 +279,7 @@
             <!-- 9. Năm 1771 (Khởi nghĩa Tây Sơn) -->
             <div class="ora-tour-card" data-region="mien-trung">
               <div class="ora-tour-card__image-wrapper">
-                <img src="assets/img/Tay Son.jpg" alt="Bảo tàng Quang Trung" class="ora-tour-card__image"
+                <img decoding="async" loading="lazy" src="assets/img/tay-son.webp" alt="Bảo tàng Quang Trung" class="ora-tour-card__image"
                   style="object-position: top center;">
                 <span class="ora-tour-badge badge-gold">Miền Trung</span>
               </div>
@@ -620,7 +293,7 @@
             <!-- 10. Năm 1802 (Triều Nguyễn - Cố đô Huế) -->
             <div class="ora-tour-card" data-region="mien-trung">
               <div class="ora-tour-card__image-wrapper">
-                <img src="assets/img/Hue.jpg" alt="Huế" class="ora-tour-card__image">
+                <img decoding="async" loading="lazy" src="assets/img/hue.webp" alt="Huế" class="ora-tour-card__image">
                 <span class="ora-tour-badge badge-gold">Miền Trung</span>
               </div>
               <div class="ora-tour-card__content">
@@ -633,7 +306,7 @@
             <!-- 13. Năm 1903 (Phát hiện Sa Pa) -->
             <div class="ora-tour-card" data-region="mien-bac">
               <div class="ora-tour-card__image-wrapper">
-                <img src="assets/img/Sa Pa.jpg" alt="Sa Pa" class="ora-tour-card__image">
+                <img decoding="async" loading="lazy" src="assets/img/sa-pa.webp" alt="Sa Pa" class="ora-tour-card__image">
                 <span class="ora-tour-badge badge-coral">Miền Bắc</span>
               </div>
               <div class="ora-tour-card__content">
@@ -646,7 +319,7 @@
             <!-- 14. Đầu thế kỷ 20 (Chợ nổi Cần Thơ) -->
             <div class="ora-tour-card" data-region="mien-nam">
               <div class="ora-tour-card__image-wrapper">
-                <img src="assets/img/Chợ nổi Cần Thơ.jpg" alt="Cần Thơ" class="ora-tour-card__image">
+                <img decoding="async" loading="lazy" src="assets/img/cho-noi-can-tho.webp" alt="Cần Thơ" class="ora-tour-card__image">
                 <span class="ora-tour-badge badge-jade">Miền Nam</span>
               </div>
               <div class="ora-tour-card__content">
@@ -659,7 +332,7 @@
             <!-- 16. Năm 1946 (Khởi đào Địa đạo Củ Chi) -->
             <div class="ora-tour-card" data-region="mien-nam">
               <div class="ora-tour-card__image-wrapper">
-                <img src="assets/img/Cu Chi.jpg" alt="Địa đạo Củ Chi" class="ora-tour-card__image">
+                <img decoding="async" loading="lazy" src="assets/img/cu-chi.webp" alt="Địa đạo Củ Chi" class="ora-tour-card__image">
                 <span class="ora-tour-badge badge-jade">Miền Nam</span>
               </div>
               <div class="ora-tour-card__content">
@@ -672,7 +345,7 @@
             <!-- 17. Năm 1954 (Chiến thắng Điện Biên Phủ) -->
             <div class="ora-tour-card" data-region="mien-bac">
               <div class="ora-tour-card__image-wrapper">
-                <img src="assets/img/Dien Bien Phu.jpg" alt="Điện Biên Phủ" class="ora-tour-card__image">
+                <img decoding="async" loading="lazy" src="assets/img/dien-bien-phu.webp" alt="Điện Biên Phủ" class="ora-tour-card__image">
                 <span class="ora-tour-badge badge-coral">Miền Bắc</span>
               </div>
               <div class="ora-tour-card__content">
@@ -685,7 +358,7 @@
             <!-- 18. Giai đoạn hiện đại (Thành phố Đà Nẵng) -->
             <div class="ora-tour-card" data-region="mien-trung">
               <div class="ora-tour-card__image-wrapper">
-                <img src="assets/img/Da Nang.jpg" alt="Đà Nẵng" class="ora-tour-card__image">
+                <img decoding="async" loading="lazy" src="assets/img/da-nang.webp" alt="Đà Nẵng" class="ora-tour-card__image">
                 <span class="ora-tour-badge badge-gold">Miền Trung</span>
               </div>
               <div class="ora-tour-card__content">
@@ -698,7 +371,7 @@
 
             <!-- Intro Cards -->
             <div class="ora-region-intro" data-intro-region="mien-bac">
-              <img src="assets/img/mien_bac_new.jpg" alt="Miền Bắc" class="ora-region-bg">
+              <img decoding="async" loading="lazy" src="assets/img/mien_bac_new.webp" alt="Miền Bắc" class="ora-region-bg">
               <div class="ora-region-overlay"></div>
               <div class="ora-region-content">
                 <h3 class="ora-intro-title">Miền Bắc - Cội nguồn văn hóa</h3>
@@ -708,7 +381,7 @@
             </div>
 
             <div class="ora-region-intro" data-intro-region="mien-trung">
-              <img src="assets/img/mien_trung_new.jpg" alt="Miền Trung" class="ora-region-bg">
+              <img decoding="async" loading="lazy" src="assets/img/mien_trung_new.webp" alt="Miền Trung" class="ora-region-bg">
               <div class="ora-region-overlay"></div>
               <div class="ora-region-content">
                 <h3 class="ora-intro-title">Miền Trung - Bản hùng ca biển bạc</h3>
@@ -718,7 +391,7 @@
             </div>
 
             <div class="ora-region-intro" data-intro-region="mien-nam">
-              <img src="assets/img/mien_nam_new.jpg" alt="Miền Nam" class="ora-region-bg">
+              <img decoding="async" loading="lazy" src="assets/img/mien_nam_new.webp" alt="Miền Nam" class="ora-region-bg">
               <div class="ora-region-overlay"></div>
               <div class="ora-region-content">
                 <h3 class="ora-intro-title">Miền Nam - Vùng đất hào sảng</h3>
@@ -741,7 +414,7 @@
           <div class="ora-bento">
             <!-- Item lớn (chiếm 2 cột, 2 hàng) -->
             <div class="ora-bento-item bento-large">
-              <img src="assets/img/Hồ Gươm.jpg" alt="Hà Nội" class="ora-bento-img"
+              <img decoding="async" loading="lazy" src="assets/img/ho-guom.webp" alt="Hà Nội" class="ora-bento-img"
                 style="object-position: right center;">
               <div class="ora-bento-overlay"></div>
               <div class="ora-bento-content">
@@ -754,7 +427,7 @@
 
             <!-- Item vừa (chiếm 2 cột, 1 hàng) -->
             <div class="ora-bento-item bento-wide">
-              <img src="assets/img/Phố cổ Hội An.jpg" alt="Hội An" class="ora-bento-img">
+              <img decoding="async" loading="lazy" src="assets/img/pho-co-hoi-an.webp" alt="Hội An" class="ora-bento-img">
               <div class="ora-bento-overlay"></div>
               <div class="ora-bento-content">
                 <span class="ora-bento-tag">Phố cổ</span>
@@ -765,7 +438,7 @@
 
             <!-- Các item nhỏ (chiếm 1 cột, 1 hàng) -->
             <div class="ora-bento-item bento-small">
-              <img src="assets/img/Vịnh Hạ Long.jpg" alt="Hạ Long" class="ora-bento-img">
+              <img decoding="async" loading="lazy" src="assets/img/vinh-ha-long.webp" alt="Hạ Long" class="ora-bento-img">
               <div class="ora-bento-overlay"></div>
               <div class="ora-bento-content">
                 <span class="ora-bento-tag">Di sản</span>
@@ -775,7 +448,7 @@
             </div>
 
             <div class="ora-bento-item bento-small">
-              <img src="assets/img/Chợ nổi Cần Thơ.jpg" alt="Cần Thơ" class="ora-bento-img">
+              <img decoding="async" loading="lazy" src="assets/img/cho-noi-can-tho.webp" alt="Cần Thơ" class="ora-bento-img">
               <div class="ora-bento-overlay"></div>
               <div class="ora-bento-content">
                 <span class="ora-bento-tag">Miền Tây</span>
@@ -786,7 +459,7 @@
 
             <!-- Thêm điểm đến mới (hàng thứ 3) -->
             <div class="ora-bento-item bento-wide">
-              <img src="assets/img/Tay Son.jpg" alt="Bình Định" class="ora-bento-img" style="object-position: center;">
+              <img decoding="async" loading="lazy" src="assets/img/tay-son.webp" alt="Bình Định" class="ora-bento-img" style="object-position: center;">
               <div class="ora-bento-overlay"></div>
               <div class="ora-bento-content">
                 <span class="ora-bento-tag">Đất Võ</span>
@@ -798,7 +471,7 @@
             </div>
 
             <div class="ora-bento-item bento-small">
-              <img src="assets/img/bien-ho-hero.jpg" alt="Gia Lai" class="ora-bento-img">
+              <img decoding="async" loading="lazy" src="assets/img/bien-ho-hero.webp" alt="Gia Lai" class="ora-bento-img">
               <div class="ora-bento-overlay"></div>
               <div class="ora-bento-content">
                 <span class="ora-bento-tag">Tây Nguyên</span>
@@ -808,7 +481,7 @@
             </div>
 
             <div class="ora-bento-item bento-small">
-              <img src="assets/img/TP HCM.jpg" alt="TP HCM" class="ora-bento-img">
+              <img decoding="async" loading="lazy" src="assets/img/tp-hcm.webp" alt="TP HCM" class="ora-bento-img">
               <div class="ora-bento-overlay"></div>
               <div class="ora-bento-content">
                 <span class="ora-bento-tag">Siêu đô thị</span>
@@ -834,7 +507,7 @@
 
           <div class="ora-bento">
             <div class="ora-bento-item bento-large">
-              <img src="assets/img/Hue.jpg" alt="Nhã nhạc cung đình Huế" class="ora-bento-img">
+              <img decoding="async" loading="lazy" src="assets/img/hue.webp" alt="Nhã nhạc cung đình Huế" class="ora-bento-img">
               <div class="ora-bento-overlay"></div>
               <div class="ora-bento-content">
                 <span class="ora-bento-tag">Âm nhạc</span>
@@ -844,7 +517,7 @@
             </div>
 
             <div class="ora-bento-item bento-wide">
-              <img src="assets/img/quan_ho.jpg" alt="Dân ca Quan họ Bắc Ninh" class="ora-bento-img">
+              <img decoding="async" loading="lazy" src="assets/img/quan_ho.webp" alt="Dân ca Quan họ Bắc Ninh" class="ora-bento-img">
               <div class="ora-bento-overlay"></div>
               <div class="ora-bento-content">
                 <span class="ora-bento-tag">Dân ca</span>
@@ -854,7 +527,7 @@
             </div>
 
             <div class="ora-bento-item bento-small">
-              <img src="assets/img/don_ca.jpg" alt="Đờn ca tài tử Nam Bộ" class="ora-bento-img">
+              <img decoding="async" loading="lazy" src="assets/img/don_ca.webp" alt="Đờn ca tài tử Nam Bộ" class="ora-bento-img">
               <div class="ora-bento-overlay"></div>
               <div class="ora-bento-content">
                 <span class="ora-bento-tag">Nghệ thuật</span>
@@ -864,7 +537,7 @@
             </div>
 
             <div class="ora-bento-item bento-small">
-              <img src="assets/img/dong_ho.jpg" alt="Tranh dân gian Đông Hồ" class="ora-bento-img">
+              <img decoding="async" loading="lazy" src="assets/img/dong_ho.webp" alt="Tranh dân gian Đông Hồ" class="ora-bento-img">
               <div class="ora-bento-overlay"></div>
               <div class="ora-bento-content">
                 <span class="ora-bento-tag">Tranh gỗ</span>
@@ -874,7 +547,7 @@
             </div>
 
             <div class="ora-bento-item bento-wide">
-              <img src="assets/img/Cồng chiêng.jpg" alt="Cồng chiêng Tây Nguyên" class="ora-bento-img"
+              <img decoding="async" loading="lazy" src="assets/img/cong-chieng.webp" alt="Cồng chiêng Tây Nguyên" class="ora-bento-img"
                 style="object-position: center;">
               <div class="ora-bento-overlay"></div>
               <div class="ora-bento-content">
@@ -885,7 +558,7 @@
             </div>
 
             <div class="ora-bento-item bento-wide">
-              <img src="assets/img/ca_tru.jpg" alt="Hát Ca trù" class="ora-bento-img"
+              <img decoding="async" loading="lazy" src="assets/img/ca_tru.webp" alt="Hát Ca trù" class="ora-bento-img"
                 style="object-position: top center;">
               <div class="ora-bento-overlay"></div>
               <div class="ora-bento-content">
@@ -910,7 +583,7 @@
 
           <div class="ora-bento">
             <div class="ora-bento-item bento-large">
-              <img src="assets/img/Áo dài truyền thống.jpg" alt="Văn hóa dân gian" class="ora-bento-img">
+              <img decoding="async" loading="lazy" src="assets/img/ao-dai-truyen-thong.webp" alt="Văn hóa dân gian" class="ora-bento-img">
               <div class="ora-bento-overlay"></div>
               <div class="ora-bento-content">
                 <span class="ora-bento-tag">Văn hóa</span>
@@ -921,7 +594,7 @@
             </div>
 
             <div class="ora-bento-item bento-wide">
-              <img src="assets/img/Phở Hà Nội.jpg" alt="Ẩm thực đường phố" class="ora-bento-img">
+              <img decoding="async" loading="lazy" src="assets/img/pho-ha-noi.webp" alt="Ẩm thực đường phố" class="ora-bento-img">
               <div class="ora-bento-overlay"></div>
               <div class="ora-bento-content">
                 <span class="ora-bento-tag">Ẩm thực</span>
@@ -931,7 +604,7 @@
             </div>
 
             <div class="ora-bento-item bento-small">
-              <img src="assets/img/Tay Bac.jpg" alt="Khám phá thiên nhiên" class="ora-bento-img">
+              <img decoding="async" loading="lazy" src="assets/img/tay-bac.webp" alt="Khám phá thiên nhiên" class="ora-bento-img">
               <div class="ora-bento-overlay"></div>
               <div class="ora-bento-content">
                 <span class="ora-bento-tag">Núi rừng</span>
@@ -941,7 +614,7 @@
             </div>
 
             <div class="ora-bento-item bento-small">
-              <img src="assets/img/Chợ nổi Cần Thơ.jpg" alt="Văn hóa sông nước" class="ora-bento-img">
+              <img decoding="async" loading="lazy" src="assets/img/cho-noi-can-tho.webp" alt="Văn hóa sông nước" class="ora-bento-img">
               <div class="ora-bento-overlay"></div>
               <div class="ora-bento-content">
                 <span class="ora-bento-tag">Sông nước</span>
@@ -951,7 +624,7 @@
             </div>
 
             <div class="ora-bento-item bento-wide">
-              <img src="assets/img/Phố cổ Hội An.jpg" alt="Di sản văn hóa" class="ora-bento-img"
+              <img decoding="async" loading="lazy" src="assets/img/pho-co-hoi-an.webp" alt="Di sản văn hóa" class="ora-bento-img"
                 style="object-position: center;">
               <div class="ora-bento-overlay"></div>
               <div class="ora-bento-content">
@@ -963,7 +636,7 @@
             </div>
 
             <div class="ora-bento-item bento-wide">
-              <img src="assets/img/Vịnh Hạ Long.jpg" alt="Kỳ quan thế giới" class="ora-bento-img">
+              <img decoding="async" loading="lazy" src="assets/img/vinh-ha-long.webp" alt="Kỳ quan thế giới" class="ora-bento-img">
               <div class="ora-bento-overlay"></div>
               <div class="ora-bento-content">
                 <span class="ora-bento-tag">Kỳ quan</span>
@@ -978,7 +651,7 @@
       <!-- 7. CTA -->
       <div class="ora-cta">
         <div class="ora-cta-bg">
-          <img src="assets/img/Lăng chủ tịch.jpeg" alt="Phong cảnh Việt Nam">
+          <img decoding="async" loading="lazy" src="assets/img/lang-chu-tich.webp" alt="Phong cảnh Việt Nam">
           <div class="ora-cta-scrim"></div>
         </div>
         <div class="ora-cta-content">
@@ -1463,7 +1136,7 @@
           <div class="ora-bento">
             <!-- Bản đồ -->
             <div class="ora-bento-item bento-large">
-              <img src="assets/img/Bản đồ hình chữ S.jpg" alt="Bản đồ" class="ora-bento-img"
+              <img decoding="async" loading="lazy" src="assets/img/ban-do-hinh-chu-s.webp" alt="Bản đồ" class="ora-bento-img"
                 style="object-position: right center;">
               <div class="ora-bento-overlay"></div>
               <div class="ora-bento-content">
@@ -1476,7 +1149,7 @@
 
             <!-- AI -->
             <div class="ora-bento-item bento-wide">
-              <img src="assets/img/Lịch trình.jpg" alt="AI" class="ora-bento-img"
+              <img decoding="async" loading="lazy" src="assets/img/lich-trinh.webp" alt="AI" class="ora-bento-img"
                 style="object-position: center bottom;">
               <div class="ora-bento-overlay"></div>
               <div class="ora-bento-content">
@@ -1489,7 +1162,7 @@
 
             <!-- Văn hóa -->
             <div class="ora-bento-item bento-small">
-              <img src="assets/img/Di sản.jpg" alt="Di sản" class="ora-bento-img" style="object-position: center 20%;">
+              <img decoding="async" loading="lazy" src="assets/img/di-san.webp" alt="Di sản" class="ora-bento-img" style="object-position: center 20%;">
               <div class="ora-bento-overlay"></div>
               <div class="ora-bento-content">
                 <span class="ora-bento-tag">Nguyên bản</span>
@@ -1500,7 +1173,7 @@
 
             <!-- Cộng đồng -->
             <div class="ora-bento-item bento-small">
-              <img src="assets/img/Chợ nổi Cần Thơ.jpg" alt="Cộng đồng" class="ora-bento-img"
+              <img decoding="async" loading="lazy" src="assets/img/cho-noi-can-tho.webp" alt="Cộng đồng" class="ora-bento-img"
                 style="object-position: center;">
               <div class="ora-bento-overlay"></div>
               <div class="ora-bento-content">
@@ -1670,7 +1343,7 @@
               </ul>
             </div>
             <div class="guide-card__media">
-              <img class="guide-card__img" data-wiki-img alt="Hồ Gươm và Tháp Rùa, Hà Nội" loading="lazy">
+              <img decoding="async" class="guide-card__img" data-wiki-img alt="Hồ Gươm và Tháp Rùa, Hà Nội" loading="lazy">
             </div>
           </article>
 
@@ -1691,7 +1364,7 @@
               </ul>
             </div>
             <div class="guide-card__media">
-              <img class="guide-card__img" data-wiki-img alt="Hoàng thành Thăng Long, Hà Nội" loading="lazy">
+              <img decoding="async" class="guide-card__img" data-wiki-img alt="Hoàng thành Thăng Long, Hà Nội" loading="lazy">
             </div>
           </article>
 
@@ -1711,7 +1384,7 @@
               </ul>
             </div>
             <div class="guide-card__media">
-              <img class="guide-card__img" data-wiki-img alt="Cầu Vàng, Bà Nà Hills, Đà Nẵng" loading="lazy">
+              <img decoding="async" class="guide-card__img" data-wiki-img alt="Cầu Vàng, Bà Nà Hills, Đà Nẵng" loading="lazy">
             </div>
           </article>
 
@@ -1731,7 +1404,7 @@
               </ul>
             </div>
             <div class="guide-card__media">
-              <img class="guide-card__img is-loaded" data-wiki-img src="assets/img/guide/vinh-ha-long.jpg"
+              <img decoding="async" class="guide-card__img is-loaded" data-wiki-img src="assets/img/guide/vinh-ha-long.webp"
                 alt="Vịnh Hạ Long, Quảng Ninh" loading="lazy">
             </div>
           </article>
@@ -1752,7 +1425,7 @@
               </ul>
             </div>
             <div class="guide-card__media">
-              <img class="guide-card__img" data-wiki-img alt="Phố cổ Hội An, Quảng Nam" loading="lazy">
+              <img decoding="async" class="guide-card__img" data-wiki-img alt="Phố cổ Hội An, Quảng Nam" loading="lazy">
             </div>
           </article>
 
@@ -1773,7 +1446,7 @@
               </ul>
             </div>
             <div class="guide-card__media">
-              <img class="guide-card__img" data-wiki-img alt="Địa đạo Củ Chi, Thành phố Hồ Chí Minh" loading="lazy">
+              <img decoding="async" class="guide-card__img" data-wiki-img alt="Địa đạo Củ Chi, Thành phố Hồ Chí Minh" loading="lazy">
             </div>
           </article>
 
@@ -1916,37 +1589,38 @@
   <div id="dest-loc-az-bubble" class="loc-az-bubble"></div>
   <div id="loc-az-bubble" class="loc-az-bubble"></div>
 
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="vendor/lucide/lucide.min.js"></script>
   <!-- Flatpickr JS -->
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-  <script src="https://npmcdn.com/flatpickr/dist/l10n/vn.js"></script>
+  <script src="vendor/flatpickr/flatpickr.min.js"></script>
+  <script src="vendor/flatpickr/l10n/vn.js"></script>
   <script src="js/location.js?v=1" defer></script>
   <script src="js/data.js"></script>
-  <script src="js/itinerary-data.js"></script>
-  <script src="js/extended-data.js"></script>
-  <script src="js/extended-data-part1.js"></script>
-  <script src="js/extended-data-part2.js"></script>
-  <script src="js/extended-data-part3.js"></script>
-  <script src="js/extended-data-crafts.js"></script>
-  <script src="js/script.js?v=1" defer></script>
+  <script src="js/itinerary-data.js?v=3"></script>
+  <script src="js/i18n-ext.js?v=1" defer></script>
+  <script src="js/geo.js?v=1" defer></script>
+  <script src="js/weather.js?v=1" defer></script>
+  <script src="js/scoring.js?v=3" defer></script>
+  <script src="js/script.js?v=4" defer></script>
   <script src="js/nav.js?v=1" defer></script>
   <script src="js/i18n-auto.js?v=1" defer></script>
   <script src="js/i18n.js?v=1" defer></script>
   <!-- guide.js: tab Cẩm nang — tìm kiếm, định vị GPS và dữ liệu lấy trực tiếp từ Wikipedia -->
-  <script src="js/guide.js?v=1" defer></script>
+  <script src="js/guide.js?v=2" defer></script>
   <!-- Leaflet + maps.js: phải nạp sau nav.js theo thứ tự này để js/maps.js
        tự gắn sự kiện vào tab Maps khi DOM đã có nav -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="js/maps.js?v=2" defer></script>
+  <script src="vendor/leaflet/leaflet.js"></script>
+  <script src="js/maps.js?v=4" defer></script>
   <!-- auth.js: đăng nhập / đăng ký + lưu cloud JSONBin.io -->
-  <script src="js/auth.js?v=1" defer></script>
+  <script src="js/auth.js?v=3" defer></script>
   <!-- region-filter.js: Lọc vùng miền (Destinations Filter, tách từ script inline) -->
   <script src="js/region-filter.js?v=1" defer></script>
   <!-- nights-stepper.js: Tăng/giảm và nhập tay cho mục Số Đêm -->
   <script src="js/nights-stepper.js?v=1" defer></script>
   <!-- checkin.js: lưu lịch trình, checkbox check-in và khôi phục lịch trình đã lưu -->
-  <script src="js/checkin.js?v=1" defer></script>
+  <script src="js/checkin.js?v=2" defer></script>
+  <script src="js/chat-knowledge.js?v=2" defer></script>
+  <script src="js/chat-content.js?v=2" defer></script>
+  <script src="js/chat-assistant.js?v=4" defer></script>
 
   <!-- Lightbox xem ảnh phóng to cho các thẻ trong kết quả Lịch trình -->
   <div id="image-lightbox" class="img-lightbox" hidden>
@@ -1954,7 +1628,7 @@
       <button type="button" id="image-lightbox-close" class="img-lightbox-close" aria-label="Đóng">
         <i data-lucide="x"></i>
       </button>
-      <img id="image-lightbox-img" src="" alt="">
+      <img decoding="async" loading="lazy" id="image-lightbox-img" src="" alt="">
       <p id="image-lightbox-caption" class="img-lightbox-caption"></p>
     </div>
   </div>
@@ -1967,7 +1641,7 @@
         <i data-lucide="x"></i>
       </button>
       <div class="dest-detail-image-wrap">
-        <img id="dest-detail-img" src="" alt="">
+        <img decoding="async" loading="lazy" id="dest-detail-img" src="" alt="">
       </div>
       <div class="dest-detail-body">
         <span id="dest-detail-badge" class="dest-detail-badge"></span>
@@ -1977,6 +1651,23 @@
       </div>
     </div>
   </div>
+
+  <!-- Script tự động bù trừ scale/zoom để giữ nguyên kích thước vật lý -->
+  <script>
+    (function () {
+      function adjustZoomCompensation() {
+        var ratio = window.devicePixelRatio;
+        // Bù trừ tỷ lệ scale: nếu scale là 80% (0.8), zoom sẽ được đặt là 1.25
+        if (ratio) {
+          document.body.style.zoom = 1 / ratio;
+        }
+      }
+      // Chạy ngay lúc load
+      adjustZoomCompensation();
+      // Lắng nghe sự kiện resize (khi người dùng thay đổi zoom)
+      window.addEventListener('resize', adjustZoomCompensation);
+    })();
+  </script>
 </body>
 
 </html>

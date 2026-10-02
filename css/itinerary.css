@@ -214,12 +214,7 @@
   opacity: 0.75;
 }
 
-.destination-card.is-checked .dest-title::after {
-  content: ' ✓ Đã trải nghiệm';
-  font-size: 0.7rem;
-  font-weight: 600;
-  opacity: 0.85;
-}
+
 
 @keyframes lightboxFadeIn {
   from { opacity: 0; }

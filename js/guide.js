@@ -584,7 +584,7 @@ function renderLocationArticle(title, coords, distMeters, source) {
 
     card.innerHTML =
       '<div class="guide-location-card__media">' +
-      (info.image ? '<img src="' + info.image + '" alt="' + escapeHtml(info.title) + '">' : '') +
+      (info.image ? '<img loading="lazy" decoding="async" src="' + info.image + '" alt="' + escapeHtml(info.title) + '">' : '') +
       '</div>' +
       '<div class="guide-location-card__body">' +
       eyebrowHtml +

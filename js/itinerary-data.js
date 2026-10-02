@@ -5583,6 +5583,10 @@ Object.keys(CRAFT_VILLAGES_DATA).forEach(province => {
    Giải pháp: Tự động nhân bản và kết hợp tên các món ăn/địa danh phổ biến với 
    các con đường có thật tại Việt Nam để tạo ra danh sách 50 địa điểm CHÍNH XÁC, 
    tránh gợi ý chung chung và hoàn toàn tương thích với tìm kiếm Bản đồ.
+   LƯU Ý (đã thêm): các mục do bộ sinh này tạo ra là TÊN GHÉP TỰ ĐỘNG (món/địa danh phổ biến
+   + tên đường), không phải địa điểm đã xác minh. Chúng được gắn cờ `synthetic: true` để bộ chấm
+   điểm (js/scoring.js) xếp xuống cuối, thẻ lịch trình hiển thị nhãn "Gợi ý chung, chưa xác minh"
+   và tools/geocode-places.mjs bỏ qua. Khuyến nghị: thay dần bằng dữ liệu thật rồi xóa bộ sinh này.
    ============================================================ */
 
 (function() {
@@ -5656,9 +5660,9 @@ Object.keys(CRAFT_VILLAGES_DATA).forEach(province => {
       // Kiểm tra trùng lặp
       if (!currentList.some(item => (item.name === nameStr || item.dish === nameStr))) {
         if (category === 'breakfast' || category === 'lunch' || category === 'dinner') {
-          currentList.push({ dish: nameStr, desc: `Hương vị hấp dẫn, không gian thoáng mát tại đường ${street}.`, keyword: `${subject} ${street}` });
+          currentList.push({ dish: nameStr, desc: `Hương vị hấp dẫn, không gian thoáng mát tại đường ${street}.`, keyword: `${subject} ${street}`, synthetic: true });
         } else {
-          currentList.push({ name: nameStr, desc: `Trải nghiệm thú vị và đặc sắc trên đường ${street}.`, keyword: `${subject} ${street}` });
+          currentList.push({ name: nameStr, desc: `Trải nghiệm thú vị và đặc sắc trên đường ${street}.`, keyword: `${subject} ${street}`, synthetic: true });
         }
       }
     }
@@ -5677,3 +5681,79 @@ Object.keys(CRAFT_VILLAGES_DATA).forEach(province => {
   });
 })();
 
+/* =====================================================================
+   VÙNG TRONG TỈNH + PHẠM VI DỮ LIỆU CẤP TỈNH
+   ---------------------------------------------------------------------
+   Sau sáp nhập (2025) nhiều tỉnh gồm các vùng rất khác nhau, nhưng dữ liệu cấp tỉnh
+   (PROVINCE_FALLBACK / EXTENDED_PROVINCE_DATA) thường chỉ mô tả MỘT vùng. PROVINCE_REGIONS
+   khai báo, cho từng tỉnh cần xử lý:
+     - regions: các nhóm địa phương gần nhau (viết đúng tên như trong khóa ITINERARY_DATA,
+       bỏ tiền tố "Thị xã", "Huyện"...);
+     - provinceLayerRegion: chỉ số nhóm mà dữ liệu cấp tỉnh thực sự mô tả.
+   Điểm đến thuộc nhóm KHÁC provinceLayerRegion sẽ không nhận các mục cấp tỉnh đã tuyển chọn;
+   thay vào đó nó mượn dữ liệu riêng của các địa phương cùng nhóm (gần nhau, xếp sau dữ liệu của
+   chính nó). Xem resolveItineraryPool trong js/script.js.
+
+   Tỉnh KHÔNG khai báo ở đây vẫn dùng dữ liệu cấp tỉnh, nhưng mục thuộc địa phương anh em bị xếp
+   sau mục đúng địa phương.
+
+   Gia Lai: dữ liệu cấp tỉnh hiện là của Gia Lai cũ (Tây Nguyên: Pleiku, Biển Hồ, cồng chiêng...),
+   không phải của Bình Định cũ (Quy Nhơn, An Nhơn, Tây Sơn ven biển/đồng bằng).
+   ===================================================================== */
+const PROVINCE_REGIONS = {
+  'Gia Lai': {
+    provinceLayerRegion: 0,
+    regions: [
+      ['Pleiku', 'An Khê', 'Chư Sê'],
+      ['Quy Nhơn', 'An Nhơn', 'Tây Sơn']
+    ]
+  }
+};
+
+/* Bổ sung địa danh/món ăn cho Quy Nhơn để lịch trình nhiều ngày không hết lựa chọn.
+   LƯU Ý: giá, địa chỉ quán và giờ mở cửa chưa được điền có chủ đích; thẻ sẽ hiện mức tham khảo
+   chung theo buổi. Nhóm nên đối chiếu thêm với nguồn chính thức trước khi điền số liệu cụ thể. */
+(function extendQuyNhon() {
+  const layer = ITINERARY_DATA['Quy Nhơn, Gia Lai'];
+  if (!layer) return;
+  const add = (slot, items) => {
+    layer[slot] = layer[slot] || [];
+    items.forEach(it => {
+      const key = (it.dish || it.name).trim().toLowerCase();
+      if (!layer[slot].some(x => (x.dish || x.name || '').trim().toLowerCase() === key)) layer[slot].push(it);
+    });
+  };
+
+  add('breakfast', [
+    { dish: 'Bánh ít lá gai', desc: 'Bánh nếp nhân đậu xanh, bọc lá gai nên có màu đen và vị dẻo thơm, đặc sản quen thuộc của vùng Bình Định.', keyword: 'Bánh ít lá gai Bình Định' },
+    { dish: 'Bánh canh chả cá', desc: 'Sợi bánh canh dai ăn cùng chả cá tươi và nước dùng ngọt từ cá biển, hợp cho bữa sáng.', keyword: 'Bánh canh chả cá Quy Nhơn' }
+  ]);
+
+  add('morningVisit', [
+    { name: 'Bãi Xép', desc: 'Bãi đá nhỏ yên tĩnh dưới chân Ghềnh Ráng, nước trong, hợp ngắm bình minh và chụp ảnh.', keyword: 'Bãi Xép Quy Nhơn', tips: 'Đường xuống bãi khá dốc, nên đi buổi sáng sớm cho mát và mang giày chống trượt.' },
+    { name: 'Hòn Khô', desc: 'Làng chài nhỏ ở Nhơn Hải với bãi biển hoang sơ, nước trong và những khối đá đẹp.', keyword: 'Hòn Khô Quy Nhơn', tips: 'Nên đi buổi sáng và kiểm tra thời tiết, sóng biển trước khi đi.' },
+    { name: 'Bán đảo Phương Mai', desc: 'Bán đảo ôm vịnh Quy Nhơn với cảnh biển và núi, có nhiều điểm dừng ngắm cảnh dọc đường ven biển.', keyword: 'Bán đảo Phương Mai Quy Nhơn', tips: 'Đi xe máy dọc đường ven biển, mang theo nước và nón.' }
+  ]);
+
+  add('lunch', [
+    { dish: 'Chả ram tôm đất', desc: 'Chả ram cuốn nhân tôm đất, chiên giòn, chấm nước mắm chua ngọt, món đặc trưng của Bình Định.', keyword: 'Chả ram tôm đất Bình Định' }
+  ]);
+
+  add('afternoonVisit', [
+    { name: 'Cầu Thị Nại', desc: 'Cây cầu vượt đầm dài hơn hai cây số, nối trung tâm thành phố với bán đảo Phương Mai.', keyword: 'Cầu Thị Nại Quy Nhơn', tips: 'Chiều muộn gió mát và nhiều góc ngắm hoàng hôn; nên đi xe vì cầu khá dài.' },
+    { name: 'Bảo tàng Bình Định', desc: 'Trưng bày hiện vật về văn hóa Chăm, phong trào Tây Sơn và lịch sử vùng đất Bình Định.', keyword: 'Bảo tàng Bình Định', tips: 'Phù hợp khi trời nắng gắt hoặc có mưa.' },
+    { name: 'Bãi tắm Quy Hòa', desc: 'Bãi biển yên tĩnh ở phía nam thành phố, ít đông đúc hơn bãi biển đường Xuân Diệu.', keyword: 'Bãi tắm Quy Hòa Quy Nhơn', tips: 'Hợp với người thích nghỉ ngơi, nên đi cuối chiều cho bớt nắng.' },
+    { name: 'Tháp Bánh Ít', desc: 'Cụm tháp Chăm cổ trên đồi cao ở ngoại thành, cách trung tâm Quy Nhơn khoảng 20 km.', keyword: 'Tháp Bánh Ít Bình Định', tips: 'Nên đến đầu giờ chiều khi bớt nắng và mang theo nón, nước uống.' }
+  ]);
+
+  add('dinner', [
+    { dish: 'Ốc len xào dừa', desc: 'Ốc len xào với nước cốt dừa béo thơm, món nhậu và bữa tối được nhiều người tìm đến khi đến Quy Nhơn.', keyword: 'Ốc len xào dừa Quy Nhơn' },
+    { dish: 'Sò huyết đầm Thị Nại', desc: 'Sò huyết đầm Thị Nại chế biến nướng hoặc xào, vị ngọt đậm, nổi tiếng trong ẩm thực địa phương.', keyword: 'Sò huyết đầm Thị Nại' },
+    { dish: 'Cá ngừ đại dương', desc: 'Cá ngừ đại dương đánh bắt ngoài khơi, chế biến dạng nướng, kho hoặc sashimi kiểu địa phương.', keyword: 'Cá ngừ đại dương Quy Nhơn' }
+  ]);
+
+  add('nightlife', [
+    { name: 'Cầu Thị Nại về đêm', desc: 'Ngắm cầu và ánh đèn thành phố bên đầm vào buổi tối, không khí mát và yên tĩnh.', keyword: 'Cầu Thị Nại Quy Nhơn', tips: 'Nên đi xe máy hoặc taxi vì cầu dài, mang thêm áo mỏng vì gió lớn.' },
+    { name: 'Cà phê ven biển đường Xuân Diệu', desc: 'Các quán cà phê nhìn ra biển dọc đường Xuân Diệu, hợp ngồi thư giãn sau một ngày tham quan.', keyword: 'Cà phê đường Xuân Diệu Quy Nhơn', tips: 'Tối cuối tuần thường đông, nên đến sớm để có chỗ ngồi gần cửa sổ.' }
+  ]);
+})();

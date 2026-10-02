@@ -9,8 +9,13 @@
    4. Điền Bin ID vào JSONBIN_BIN_ID bên dưới
    5. Khi chưa điền đủ 2 giá trị trên, hệ thống tự dùng localStorage
 
-   BẢO MẬT: Đây là hackathon demo tĩnh — API key hiển thị client-side
-   là bình thường. Với sản phẩm thật cần dùng backend server riêng.
+   BẢO MẬT: Mật khẩu KHÔNG còn lưu dạng văn bản. Mỗi mật khẩu được băm bằng
+   PBKDF2-SHA256 (150.000 vòng, muối ngẫu nhiên riêng từng tài khoản) qua Web Crypto
+   trước khi lưu, nên đọc dữ liệu trong localStorage/JSONBin không lộ mật khẩu gốc.
+   Tài khoản cũ (còn mật khẩu thô) được tự động chuyển sang dạng băm ở lần đăng nhập
+   kế tiếp. Giới hạn cần nhớ: đây vẫn là kiểm tra phía trình duyệt, ai kiểm soát kho
+   dữ liệu thì có thể sửa/xóa tài khoản và thử mật khẩu ngoại tuyến. Với sản phẩm thật,
+   chuyển sang dịch vụ xác thực riêng (Firebase Auth, Supabase Auth...).
    ============================================================ */
 
 (function () {
@@ -41,6 +46,69 @@
   function isJsonBinConfigured() {
     return JSONBIN_API_KEY && JSONBIN_BIN_ID &&
            JSONBIN_API_KEY !== '' && JSONBIN_BIN_ID !== '';
+  }
+
+  /* ========================= BĂM MẬT KHẨU (PBKDF2) ========================= */
+  var PBKDF2_ITER = 150000;
+
+  function b64(buf) {
+    var bytes = new Uint8Array(buf), bin = '';
+    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+  function unb64(str) {
+    var bin = atob(str), out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+
+  function derive(password, saltBytes, iter) {
+    if (!window.crypto || !window.crypto.subtle) {
+      return Promise.reject(new Error('Trình duyệt không hỗ trợ mã hóa an toàn (cần https hoặc localhost)'));
+    }
+    var enc = new TextEncoder();
+    return crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits'])
+      .then(function (key) {
+        return crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: saltBytes, iterations: iter }, key, 256);
+      });
+  }
+
+  // Tạo bản ghi băm mới: { algo, iter, salt, hash }
+  function hashPassword(password) {
+    var salt = crypto.getRandomValues(new Uint8Array(16));
+    return derive(password, salt, PBKDF2_ITER).then(function (bits) {
+      return { algo: 'PBKDF2-SHA256', iter: PBKDF2_ITER, salt: b64(salt), hash: b64(bits) };
+    });
+  }
+
+  // So sánh thời gian cố định để không lộ vị trí ký tự sai đầu tiên
+  function sameString(a, b) {
+    if (a.length !== b.length) return false;
+    var diff = 0;
+    for (var i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    return diff === 0;
+  }
+
+  function verifyPassword(password, rec) {
+    return derive(password, unb64(rec.salt), rec.iter).then(function (bits) {
+      return sameString(b64(bits), rec.hash);
+    });
+  }
+
+  /* Giới hạn thử sai: 5 lần sai liên tiếp thì khóa 30 giây (chỉ có tác dụng với người dùng thường) */
+  var failures = {};
+  function lockedFor(key) {
+    var f = failures[key];
+    if (!f || f.count < 5) return 0;
+    var left = f.until - Date.now();
+    if (left <= 0) { delete failures[key]; return 0; }
+    return Math.ceil(left / 1000);
+  }
+  function noteFailure(key) {
+    var f = failures[key] || { count: 0, until: 0 };
+    f.count++;
+    if (f.count >= 5) f.until = Date.now() + 30000;
+    failures[key] = f;
   }
 
   /* ========================= ĐIỀU HƯỚNG PANEL ========================= */
@@ -210,10 +278,10 @@
         return;
       }
 
-      var newUser = { email: email, username: username, password: password };
-      users.push(newUser);
-
-      return saveUsers(users).then(function () {
+      return hashPassword(password).then(function (pwd) {
+        users.push({ email: email, username: username, pwd: pwd });
+        return saveUsers(users);
+      }).then(function () {
         setLoading(submitEl, false);
         setMessage(msgEl, '✓ Tạo tài khoản thành công! Đang chuyển sang đăng nhập…', 'success');
         e.target.reset();
@@ -248,17 +316,49 @@
     setLoading(submitEl, true);
     setMessage(msgEl, 'Đang xác thực…', null);
 
+    var key = identifier.toLowerCase();
+    var wait = lockedFor(key);
+    if (wait) {
+      setLoading(submitEl, false);
+      setMessage(msgEl, window.VNI18n
+        ? window.VNI18n.t('Bạn đã nhập sai nhiều lần. Vui lòng thử lại sau {s} giây.', { s: wait })
+        : 'Bạn đã nhập sai nhiều lần. Vui lòng thử lại sau ' + wait + ' giây.', 'error');
+      return;
+    }
+
     getUsers().then(function (users) {
-      var key  = identifier.toLowerCase();
       var user = users.find(function (u) {
         return u.email.toLowerCase() === key || u.username.toLowerCase() === key;
       });
 
-      if (!user || user.password !== password) {
-        setLoading(submitEl, false);
-        setMessage(msgEl, 'Tên đăng nhập/email hoặc mật khẩu không đúng.', 'error');
-        return;
+      // Luôn thực hiện một phép băm dù không có tài khoản, để thời gian phản hồi không lộ email có tồn tại hay không
+      var check;
+      if (user && user.pwd) {
+        check = verifyPassword(password, user.pwd);
+      } else if (user && typeof user.password === 'string') {
+        // Tài khoản cũ còn mật khẩu thô: so khớp rồi chuyển sang dạng băm
+        check = Promise.resolve(sameString(user.password, password));
+      } else {
+        check = hashPassword(password).then(function () { return false; });
       }
+
+      return check.then(function (ok) {
+        if (!ok) {
+          noteFailure(key);
+          setLoading(submitEl, false);
+          setMessage(msgEl, 'Tên đăng nhập/email hoặc mật khẩu không đúng.', 'error');
+          return null;
+        }
+        delete failures[key];
+        if (user.pwd) return user;
+        return hashPassword(password).then(function (pwd) {
+          user.pwd = pwd;
+          delete user.password;
+          return saveUsers(users).then(function () { return user; }, function () { return user; });
+        });
+      });
+    }).then(function (user) {
+      if (!user) return;
 
       /* Lưu session */
       try {

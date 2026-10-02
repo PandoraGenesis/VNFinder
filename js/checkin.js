@@ -29,13 +29,13 @@
     // Ảnh cục bộ đã có sẵn trong assets/img — ưu tiên dùng trước khi phải
     // gọi Wikipedia, để hiện ngay lập tức và đúng chủ đề chính của dự án.
     var PROVINCE_IMAGES = {
-        'Hà Nội': 'assets/img/Hồ Gươm.jpg',
-        'Hồ Chí Minh': 'assets/img/TP HCM.jpg',
-        'Đà Nẵng': 'assets/img/Da Nang.jpg',
-        'Gia Lai': 'assets/img/bien-ho-hero.jpg',
-        'Cần Thơ': 'assets/img/Chợ nổi Cần Thơ.jpg',
-        'Huế': 'assets/img/Hue.jpg',
-        'Lào Cai': 'assets/img/Sa Pa.jpg'
+        'Hà Nội': 'assets/img/ho-guom.webp',
+        'Hồ Chí Minh': 'assets/img/tp-hcm.webp',
+        'Đà Nẵng': 'assets/img/da-nang.webp',
+        'Gia Lai': 'assets/img/bien-ho-hero.webp',
+        'Cần Thơ': 'assets/img/cho-noi-can-tho.webp',
+        'Huế': 'assets/img/hue.webp',
+        'Lào Cai': 'assets/img/sa-pa.webp'
     };
 
     function qs(id) { return document.getElementById(id); }
@@ -64,14 +64,34 @@
 
     /* ---------------------- Ảnh điểm khởi hành / điểm đến ---------------------- */
 
+    function fetchInternetImage(keyword) {
+        var urlVI = 'https://vi.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=' + encodeURIComponent(keyword) + '&gsrlimit=1&prop=pageimages&piprop=thumbnail&pithumbsize=500&format=json&formatversion=2&origin=*';
+        var urlEN = 'https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=' + encodeURIComponent(keyword) + '&gsrlimit=1&prop=pageimages&piprop=thumbnail&pithumbsize=500&format=json&formatversion=2&origin=*';
+
+        return fetch(urlVI)
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                var pages = (data.query && data.query.pages) || [];
+                var src = pages[0] && pages[0].thumbnail && pages[0].thumbnail.source;
+                if (src) return src;
+                
+                return fetch(urlEN)
+                    .then(function(res) { return res.json(); })
+                    .then(function(data) {
+                        var enPages = (data.query && data.query.pages) || [];
+                        return enPages[0] && enPages[0].thumbnail && enPages[0].thumbnail.source;
+                    });
+            });
+    }
+
     // Vài huyện thuộc Bình Định cũ (nay sáp nhập vào Gia Lai) — đúng chủ đề
     // chính của dự án — ưu tiên khớp riêng trước khi khớp theo tên tỉnh.
     function matchLocalImage(fullText) {
         if (/(quy nhơn|tây sơn|an nhơn|bình định)/i.test(fullText || '')) {
-            return 'assets/img/Tay Son.jpg';
+            return 'assets/img/tay-son.webp';
         }
         if (/sa pa/i.test(fullText || '')) {
-            return 'assets/img/Sa Pa.jpg';
+            return 'assets/img/sa-pa.webp';
         }
         return null;
     }
@@ -83,12 +103,10 @@
             imgEl.src = local;
             return;
         }
-        // Không có ảnh cục bộ phù hợp — dùng lại đúng hàm fetchWikiImage() mà
-        // script.js đã dùng cho ảnh các điểm đến trong lịch trình, để không
-        // phải tự tay chuẩn bị ảnh cho hàng chục tỉnh/thành còn lại.
-        if (typeof GRAY_PLACEHOLDER !== 'undefined') imgEl.src = GRAY_PLACEHOLDER;
-        if (typeof fetchWikiImage === 'function' && displayText) {
-            fetchWikiImage(displayText).then(function (url) {
+        // Không có ảnh cục bộ phù hợp — tìm kiếm ảnh động trên Wikipedia
+        imgEl.src = (typeof GRAY_PLACEHOLDER !== 'undefined') ? GRAY_PLACEHOLDER : 'assets/img/nen.webp';
+        if (displayText) {
+            fetchInternetImage(displayText).then(function (url) {
                 if (url) imgEl.src = url;
             }).catch(function () { /* giữ ảnh placeholder nếu lỗi */ });
         }
@@ -228,7 +246,7 @@
             '    <i data-lucide="x"></i>' +
             '  </button>' +
             '  <div class="checkin-side checkin-departure">' +
-            '    <img class="checkin-side-img" data-checkin-img="departure-' + idx + '" alt="' + escapeHTML(departure) + '">' +
+            '    <img loading="lazy" decoding="async" class="checkin-side-img" data-checkin-img="departure-' + idx + '" alt="' + escapeHTML(departure) + '">' +
             '    <div class="checkin-side-overlay"></div>' +
             '    <div class="checkin-side-text">' +
             '      <span class="checkin-eyebrow">Điểm khởi hành</span>' +
@@ -237,7 +255,7 @@
             '  </div>' +
             '  <div class="checkin-plane"><i data-lucide="plane" class="checkin-plane-icon"></i></div>' +
             '  <div class="checkin-side checkin-destination">' +
-            '    <img class="checkin-side-img" data-checkin-img="destination-' + idx + '" alt="' + escapeHTML(destination) + '">' +
+            '    <img loading="lazy" decoding="async" class="checkin-side-img" data-checkin-img="destination-' + idx + '" alt="' + escapeHTML(destination) + '">' +
             '    <div class="checkin-side-overlay"></div>' +
             '    <div class="checkin-side-text checkin-side-text--right">' +
             '      <span class="checkin-eyebrow">Điểm đến</span>' +

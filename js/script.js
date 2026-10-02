@@ -193,6 +193,10 @@ let state = {
   isCbOpen: false,
   isDestOpen: false,
   selectedPrefs: [],
+  // Hồ sơ du lịch do chatbot trích xuất: { boost:{thẻ:hệ số}, avoid:[thẻ], intensity, notes }
+  profile: {},
+  // Chỉ bật true khi dự báo thời tiết lấy từ nguồn thật (hiện còn là dữ liệu mẫu)
+  weatherIsReal: false,
   // Mảng lưu các điểm đã check-in (dạng Set, mỗi phần tử là "day-session-index")
   checkedDestinations: {}
 };
@@ -522,54 +526,109 @@ function checkWeatherAlert() {
 
   if (startDate && endDate && dest) {
     weatherAlert.hidden = false;
-    weatherDesc.innerHTML = `Dự báo thời tiết tại <b>${dest}</b> từ ngày <b>${startDate}</b> đến ngày <b>${endDate}</b>:
-      <ul style="margin-top: 4px; padding-left: 20px; margin-bottom: 0;">
-        <li>Thời tiết dự kiến khá đẹp, trời nắng ráo</li>
-        <li>Nhiệt độ dao động 24 - 30°C</li>
-        <li>Rất thích hợp cho các hoạt động trải nghiệm ngoài trời</li>
-      </ul>`;
-
-    // Render daily forecast
-    const rightCol = document.getElementById('weather-daily-forecast');
-    if (rightCol) {
-      let dailyHtml = '';
-      const icons = ['sun', 'cloud-sun', 'cloud-rain', 'sun', 'cloud'];
-      const colors = ['#f59e0b', '#f59e0b', '#3b82f6', '#f59e0b', '#94a3b8'];
-      const temps = ['30°C', '28°C', '25°C', '29°C', '27°C'];
-
-      let [d, m, y] = startDate.split('/');
-      let currentDate = new Date(y, m - 1, d);
-      let daysToShow = state.duration || 3;
-      state.weatherForecast = [];
-
-      for (let i = 0; i < daysToShow; i++) {
-        let displayDate = `${currentDate.getDate().toString().padStart(2, '0')}/${(currentDate.getMonth() + 1).toString().padStart(2, '0')}`;
-        let icon = icons[i % icons.length];
-        let color = colors[i % colors.length];
-        let temp = temps[i % temps.length];
-        state.weatherForecast.push(icon);
-
-        dailyHtml += `
-          <div style="text-align: center; flex: 0 0 auto; min-width: 48px;">
-            <p style="font-size: 0.75rem; font-weight: 600; margin-bottom: 8px; color: rgba(230, 81, 0, 0.7);">${displayDate}</p>
-            <i data-lucide="${icon}" style="width: 24px; height: 24px; color: ${color}; margin: 0 auto;"></i>
-            <p style="font-size: 0.9rem; font-weight: 700; margin-top: 8px; color: var(--warn);">${temp}</p>
-          </div>
-        `;
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-      rightCol.innerHTML = dailyHtml;
-      window.lucide.createIcons({ root: rightCol });
-    }
-
-    // Khối này vừa được vẽ lại toàn bộ bằng tiếng Việt (weatherDesc + rightCol
-    // đều nằm trong weatherAlert) — nếu trang đang ở chế độ "en" thì dịch lại
-    // ngay, tránh việc đổi ngày/điểm đến trong lúc đang xem bản EN làm khối
-    // thời tiết quay về tiếng Việt.
-    if (window.applyCurrentLanguage) window.applyCurrentLanguage(weatherAlert);
+    loadRealWeather(dest, startDate, weatherDesc);
   } else {
     weatherAlert.hidden = true;
+    state.weatherForecast = [];
+    state.weatherIsReal = false;
   }
+}
+
+/**
+ * Lấy dự báo thật từ Open-Meteo (js/weather.js) cho điểm đến và khoảng ngày đã chọn.
+ * Không bao giờ hiển thị số liệu mẫu: lỗi mạng thì báo lỗi và lịch trình vẫn tạo bình thường.
+ * Mọi chữ hiển thị đi qua js/i18n-ext.js nên tự đổi ngôn ngữ khi người dùng bấm VN/EN.
+ */
+const __weatherCache = {};
+function loadRealWeather(dest, startDate, weatherDesc) {
+  const T = (k, p) => (window.VNI18n ? window.VNI18n.t(k, p) : k);
+  const rightCol = document.getElementById('weather-daily-forecast');
+  const days = state.duration || 3;
+  const province = state.destProvince || dest.split(',').pop().trim();
+  const cacheKey = [dest, startDate, days].join('|');
+  const token = (state.__weatherToken = (state.__weatherToken || 0) + 1);
+
+  state.weatherForecast = [];
+  state.weatherIsReal = false;
+  state.__weatherRerender = null;
+
+  // Thông báo trạng thái (đang tải / lỗi): VNI18n.set đăng ký để tự dịch khi đổi ngôn ngữ
+  const status = (key, params) => {
+    if (token !== state.__weatherToken) return;
+    if (window.VNI18n) window.VNI18n.set(weatherDesc, key, params); else weatherDesc.textContent = key;
+    if (rightCol) rightCol.innerHTML = '';
+  };
+
+  const render = (list) => {
+    if (token !== state.__weatherToken) return;
+    const valid = list.filter(Boolean);
+    if (!valid.length) { status('Chưa có dữ liệu thời tiết cho khoảng ngày này.'); return; }
+
+    state.weatherForecast = list.map(d => (d ? d.icon : 'cloud'));
+    state.weatherIsReal = true;
+    state.__weatherRerender = () => render(list);
+
+    // Khối này tự vẽ lại từ đầu nên bỏ đăng ký của thông báo trạng thái cũ
+    weatherDesc.removeAttribute('data-vni-k');
+    weatherDesc.removeAttribute('data-vni-p');
+
+    const tmin = Math.min(...valid.map(d => d.tmin));
+    const tmax = Math.max(...valid.map(d => d.tmax));
+    const rainy = valid.filter(d => d.rain).length;
+    const estimated = valid.some(d => d.estimated);
+    const advice = rainy === 0
+      ? T('Phù hợp cho các hoạt động ngoài trời.')
+      : T('Có {rainy}/{total} ngày nhiều khả năng mưa. Lịch trình sẽ ưu tiên địa điểm trong nhà vào những ngày này.', { rainy, total: valid.length });
+    weatherDesc.innerHTML = `${escapeHtml(T('Thời tiết tại {dest}:', { dest }))}
+      <ul style="margin-top: 4px; padding-left: 20px; margin-bottom: 0;">
+        <li>${escapeHtml(T('Nhiệt độ dao động {tmin} - {tmax}°C', { tmin, tmax }))}</li>
+        <li>${escapeHtml(advice)}</li>
+        ${estimated ? `<li><i>${escapeHtml(T('Các ngày xa hơn 15 ngày được ước tính theo thời tiết cùng kỳ năm trước.'))}</i></li>` : ''}
+      </ul>`;
+
+    if (rightCol) {
+      rightCol.innerHTML = list.map(d => {
+        if (!d) return '';
+        const dd = `${String(d.date.getDate()).padStart(2, '0')}/${String(d.date.getMonth() + 1).padStart(2, '0')}`;
+        const tip = T(d.label) + (d.estimated ? T(' (ước tính)') : '');
+        return `
+          <div style="text-align: center; flex: 0 0 auto; min-width: 48px;" title="${escapeHtml(tip)}">
+            <p style="font-size: 0.75rem; font-weight: 600; margin-bottom: 8px; color: rgba(230, 81, 0, 0.7);">${dd}</p>
+            <i data-lucide="${d.icon}" style="width: 24px; height: 24px; color: ${d.color}; margin: 0 auto;"></i>
+            <p style="font-size: 0.9rem; font-weight: 700; margin-top: 8px; color: var(--warn);">${d.tmax}°C</p>
+            ${d.pop != null && !d.estimated ? `<p style="font-size: 0.7rem; margin-top: 2px; color: #3b82f6;">${d.pop}%</p>` : ''}
+          </div>`;
+      }).join('');
+      if (window.lucide) window.lucide.createIcons({ root: rightCol });
+    }
+  };
+
+  if (__weatherCache[cacheKey]) { render(__weatherCache[cacheKey]); return; }
+  if (!window.VNGeo || !window.VNWeather) { status('Chưa tải được mô-đun thời tiết.'); return; }
+
+  status('Đang tải dự báo thời tiết tại {dest}...', { dest });
+
+  const [dd, mm, yy] = startDate.split('/');
+  const startD = new Date(Number(yy), Number(mm) - 1, Number(dd));
+
+  window.VNGeo.locate(dest, province).then(pt => {
+    if (!pt) throw new Error('no-coord');
+    return window.VNWeather.fetchDays(pt.lat, pt.lng, startD, days);
+  }).then(list => {
+    __weatherCache[cacheKey] = list;
+    render(list);
+  }).catch(err => {
+    console.warn('[VNFinder Weather]', err);
+    status(err && err.message === 'no-coord'
+      ? 'Chưa xác định được vị trí điểm đến để lấy dự báo. Lịch trình vẫn được tạo bình thường.'
+      : 'Không lấy được dự báo thời tiết (lỗi kết nối). Lịch trình vẫn được tạo bình thường.');
+  });
+}
+
+// Đổi ngôn ngữ: vẽ lại khối thời tiết đang hiển thị (nếu có)
+if (window.VNI18n && !window.__vniWeatherBound) {
+  window.__vniWeatherBound = true;
+  window.VNI18n.onChange(() => { if (state.__weatherRerender) state.__weatherRerender(); });
 }
 
 const startDateEl = document.getElementById('start-date');
@@ -729,17 +788,116 @@ function mergeSlotItems(slotKey, layers) {
   return merged;
 }
 
+/**
+ * LỌC DỮ LIỆU CẤP TỈNH THEO ĐỊA PHƯƠNG.
+ *
+ * Dữ liệu cấp tỉnh (PROVINCE_FALLBACK / EXTENDED_PROVINCE_DATA) từng được trộn nguyên vào
+ * mọi điểm đến của tỉnh. Với tỉnh gồm nhiều vùng khác nhau (ví dụ Gia Lai sau sáp nhập gồm
+ * Pleiku ở Tây Nguyên và Quy Nhơn ven biển), người chọn Quy Nhơn lại nhận gợi ý ở Pleiku
+ * khi dữ liệu riêng của Quy Nhơn hết (lịch trình từ ngày thứ 2 trở đi).
+ *
+ * Khi điểm đến CÓ dữ liệu riêng, mỗi mục cấp tỉnh được phân loại:
+ *   - "drop"    (loại hẳn): tỉnh có khai báo PROVINCE_REGIONS (itinerary-data.js) và điểm đến
+ *               thuộc vùng KHÁC vùng mà dữ liệu cấp tỉnh mô tả. Dùng cho trường hợp đã xác nhận hai
+ *               vùng cách xa nhau (Quy Nhơn so với Pleiku). Điểm đến được bù bằng dữ liệu riêng
+ *               của các địa phương cùng vùng.
+ *   - "foreign" (xếp sau): mục thuộc địa phương anh em, tức đã nằm trong dữ liệu riêng của địa
+ *               phương đó hoặc nhắc tên địa phương đó. Không loại, vì ở nhiều tỉnh các điểm này
+ *               nằm gần nhau (Lào Cai - Sa Pa); chỉ bị trừ điểm để mục của đúng địa phương hoặc
+ *               trung tính được chọn trước (js/scoring.js).
+ *   - "keep"    các mục còn lại.
+ * Mục sinh tự động (synthetic) không thuộc địa phương nào nên luôn giữ lại làm phương án cuối.
+ */
+function localityName(key) {
+  return String(key || '').split(',')[0].trim()
+    .replace(/^(Thành phố|Thị xã|Huyện|Quận|Thị trấn|TP\.?)\s+/i, '').trim();
+}
+
+function itemMentionsAny(item, names) {
+  const text = [item.name, item.dish, item.desc, item.tips, item.keyword, item.address,
+    Array.isArray(item.suggestedSpots) ? item.suggestedSpots.join(' ') : '']
+    .join(' ').toLowerCase();
+  return names.some(n => n.length >= 4 && text.includes(n.toLowerCase()));
+}
+
+function adaptLayerForLocality(layer, classify) {
+  if (!layer) return layer;
+  const out = {};
+  ITINERARY_SLOTS.forEach(slotKey => {
+    const kept = [];
+    (layer[slotKey] || []).forEach(item => {
+      if (item.synthetic) { kept.push(item); return; }
+      const verdict = classify(item);
+      if (verdict === 'drop') return;
+      // Bản sao nông để gắn cờ mà không sửa dữ liệu gốc
+      kept.push(verdict === 'foreign' ? Object.assign({}, item, { _foreign: true }) : item);
+    });
+    out[slotKey] = kept;
+  });
+  return out;
+}
+
 function resolveItineraryPool(destination, province) {
   const data = (typeof ITINERARY_DATA !== 'undefined') ? ITINERARY_DATA : {};
   const fallback = (typeof PROVINCE_FALLBACK !== 'undefined') ? PROVINCE_FALLBACK : {};
   const extended = (typeof EXTENDED_PROVINCE_DATA !== 'undefined') ? EXTENDED_PROVINCE_DATA : {};
   const generic = (typeof GENERIC_FALLBACK !== 'undefined') ? GENERIC_FALLBACK : null;
+  const regionCfg = (typeof PROVINCE_REGIONS !== 'undefined') ? PROVINCE_REGIONS[province] : null;
+
+  const own = data[destination];
+  let fallbackLayer = fallback[province];
+  let extendedLayer = extended[province];
+  const mateLayers = [];
+
+  // Chỉ xử lý khi người dùng chọn một địa phương cụ thể có dữ liệu riêng
+  if (own && destination.includes(',')) {
+    const myName = localityName(destination);
+    const inList = (list, name) => list.some(s => name.toLowerCase().includes(String(s).toLowerCase()));
+
+    // Vùng của điểm đến (nếu tỉnh có khai báo vùng)
+    const regions = regionCfg && Array.isArray(regionCfg.regions) ? regionCfg.regions : [];
+    const myRegion = regions.findIndex(list => inList(list, myName));
+    const outOfScope = myRegion !== -1 && myRegion !== regionCfg.provinceLayerRegion;
+
+    const siblingKeys = Object.keys(data).filter(k =>
+      k !== destination && k.includes(',') && k.split(',').pop().trim() === province);
+
+    // Địa phương cùng vùng: mượn dữ liệu riêng, không coi là "ngoại lai"
+    const mateKeys = myRegion === -1 ? [] : siblingKeys.filter(k => inList(regions[myRegion], localityName(k)));
+    mateKeys.forEach(k => {
+      const copy = {};
+      ITINERARY_SLOTS.forEach(slotKey => {
+        // Không mượn mục chung chung kiểu "Quán cà phê trung tâm huyện": nó chỉ đúng với địa phương gốc
+        copy[slotKey] = ((data[k] || {})[slotKey] || [])
+          .filter(it => !/trung tâm (huyện|thị xã|thị trấn)/i.test(it.name || it.dish || ''))
+          .map(it => Object.assign({}, it, { _near: true }));
+      });
+      mateLayers.push(copy);
+    });
+
+    const otherKeys = siblingKeys.filter(k => !mateKeys.includes(k));
+    const siblingNames = otherKeys.map(localityName).filter(n => n && n !== myName);
+    const claimed = new Set();
+    otherKeys.forEach(k => ITINERARY_SLOTS.forEach(slotKey => {
+      ((data[k] || {})[slotKey] || []).forEach(it => claimed.add(itemDedupeKey(it)));
+    }));
+
+    const classify = (item) => {
+      if (outOfScope) return 'drop';
+      if (claimed.has(itemDedupeKey(item)) || itemMentionsAny(item, siblingNames)) return 'foreign';
+      return 'keep';
+    };
+
+    fallbackLayer = adaptLayerForLocality(fallbackLayer, classify);
+    extendedLayer = adaptLayerForLocality(extendedLayer, classify);
+  }
 
   const layers = [];
-  if (data[destination]) layers.push(data[destination]);
-  if (fallback[province]) layers.push(fallback[province]);
-  if (extended[province]) layers.push(extended[province]);
-  
+  if (own) layers.push(own);
+  mateLayers.forEach(l => layers.push(l));
+  if (fallbackLayer) layers.push(fallbackLayer);
+  if (extendedLayer) layers.push(extendedLayer);
+
   // Người dùng yêu cầu KHÔNG dùng gợi ý chung chung nếu đã có dữ liệu chính xác.
   // Do đó, chỉ dùng GENERIC_FALLBACK khi điểm đến này hoàn toàn chưa có dữ liệu.
   if (layers.length === 0 && generic) {
@@ -805,7 +963,7 @@ function isIndoorItem(item) {
  * Sinh sẵn danh sách gợi ý cho TOÀN BỘ `totalDays` ngày của một buổi (vd. tất cả bữa sáng
  * của cả chuyến đi), dùng cơ chế "túi xáo bài" mô tả ở trên.
  */
-function buildSlotSequence(pool, totalDays, count, rng, weatherArray) {
+function buildSlotSequence(pool, totalDays, count, rng, weatherArray, slotKey) {
   const days = [];
   if (!pool || pool.length === 0) {
     for (let d = 0; d < totalDays; d++) days.push([]);
@@ -816,28 +974,48 @@ function buildSlotSequence(pool, totalDays, count, rng, weatherArray) {
   for (let d = 0; d < totalDays; d++) {
     const dayItems = [];
     const usedKeysThisDay = new Set();
-    const isRainy = weatherArray && weatherArray[d] && weatherArray[d].includes('rain');
+    const isRainy = weatherArray && weatherArray[d] && (weatherArray[d].includes('rain') || weatherArray[d].includes('lightning'));
 
     while (dayItems.length < count) {
       if (bag.length === 0) {
         bag = shuffleWithRng(pool, rng); // hết vòng: xáo lại toàn bộ pool cho vòng tiếp theo
       }
       
-      // Ưu tiên indoor nếu mưa, outdoor nếu nắng
+      // Chọn theo điểm số (js/scoring.js): sở thích, nhịp độ, thời tiết, đa dạng trong buổi.
+      // Nếu scoring.js không tải được thì quay về cách chọn cũ theo trong nhà/ngoài trời.
       let idx = -1;
-      if (isRainy) {
+      let why = [];
+      if (window.VNScoring) {
+        const r = window.VNScoring.pickIndex(bag, {
+          slotKey: slotKey,
+          prefs: state.selectedPrefs || [],
+          profile: state.profile || {},
+          isRainy: !!isRainy,
+          weatherReal: !!state.weatherIsReal,
+          usedKeys: usedKeysThisDay,
+          keyFn: itemDedupeKey,
+          dayItems: dayItems,
+          coordOf: (it) => (window.VNGeo ? window.VNGeo.peek(it.name, state.destProvince || (state.destination || '').split(',').pop().trim()) : null),
+          rng: rng
+        });
+        idx = r.index;
+        why = r.why;
+      } else if (isRainy) {
         idx = bag.findIndex(it => !usedKeysThisDay.has(itemDedupeKey(it)) && isIndoorItem(it));
       } else {
         idx = bag.findIndex(it => !usedKeysThisDay.has(itemDedupeKey(it)) && !isIndoorItem(it));
       }
-      
-      // Nếu không tìm được item thoả điều kiện thời tiết, lấy item đầu tiên chưa dùng
+
+      // Nếu không tìm được item thoả điều kiện, lấy item đầu tiên chưa dùng
       if (idx === -1) {
         idx = bag.findIndex(it => !usedKeysThisDay.has(itemDedupeKey(it)));
+        why = [];
       }
 
       if (idx === -1) idx = 0; // pool nhỏ hơn count: đành chấp nhận trùng trong ngày, không còn lựa chọn khác
-      const [item] = bag.splice(idx, 1);
+      const [picked] = bag.splice(idx, 1);
+      // Bản sao nông để gắn lý do gợi ý mà không sửa dữ liệu gốc
+      const item = why.length ? Object.assign({}, picked, { _why: why }) : picked;
       dayItems.push(item);
       usedKeysThisDay.add(itemDedupeKey(item));
     }
@@ -871,7 +1049,7 @@ function buildFullItinerary(destination, province, totalDays) {
   // ngày một cách độc lập), để cơ chế "túi xáo bài" biết chính xác những gì đã dùng.
   const sequences = {};
   ITINERARY_SLOTS.forEach(slotKey => {
-    sequences[slotKey] = buildSlotSequence(pool[slotKey], totalDays, sessionCounts[slotKey], rng, state.weatherForecast);
+    sequences[slotKey] = buildSlotSequence(pool[slotKey], totalDays, sessionCounts[slotKey], rng, state.weatherForecast, slotKey);
   });
 
   const itinerary = {};
@@ -994,6 +1172,14 @@ function renderDestCard(item, kind, slotKey, provinceStr) {
   // dù không còn ảnh minh hoạ.
   const highlight = getPrimaryHighlight(item, kind, slotKey, provinceStr);
   const safeHighlight = escapeHtml(highlight.value);
+  // Lý do gợi ý do bộ chấm điểm sinh ra (nếu có); js/i18n-ext.js tự dịch khi đổi ngôn ngữ
+  const vni = window.VNI18n;
+  const whyHtml = (vni && item._why && item._why.length)
+    ? `<div class="dest-why"><i data-lucide="sparkles" class="meta-icon"></i> ${item._why.slice(0, 2).map(w => vni.reasonSpan(w)).join(' · ')}</div>`
+    : '';
+  const unverifiedHtml = (vni && item.synthetic)
+    ? `<div class="dest-why dest-why--unverified"><i data-lucide="info" class="meta-icon"></i> ${vni.reasonSpan({ k: 'unverified' })}</div>`
+    : '';
 
   return `
     <div class="destination-card ${isFood ? 'food-card' : 'visit-card'} ${isChecked ? 'is-checked' : ''}" data-card-id="${cardId}" onclick="openDestDetail(event, ${cardId})">
@@ -1013,6 +1199,7 @@ function renderDestCard(item, kind, slotKey, provinceStr) {
         <div class="dest-tips">
           <p class="i18n-dyn" data-vi="${safeBody}">${safeBody}</p>
         </div>
+        ${unverifiedHtml || whyHtml}
       </div>
     </div>
   `;
@@ -1096,6 +1283,17 @@ function renderResult() {
   // Destination Grid for Selected Day
   const dayItinerary = state.generatedItinerary[state.selectedDay] || {};
   const provinceStr = state.destProvince || (state.destination ? state.destination.split(',').pop().trim() : '');
+
+  // Nút xem tuyến đường của ngày đang chọn (tọa độ tra bằng js/geo.js, vẽ bằng js/maps.js)
+  if (window.VNI18n && state.generatedItinerary[state.selectedDay] && state.generatedItinerary[state.selectedDay].morning) {
+    html += `
+      <div class="day-route-bar">
+        <button type="button" class="day-route-btn" id="day-route-btn" onclick="handleShowDayRoute()">
+          <i data-lucide="route"></i> ${window.VNI18n.span('Xem tuyến đường ngày {day}', { day: state.selectedDay })}
+        </button>
+        <span class="day-route-hint" id="day-route-hint">${window.VNI18n.span('Dùng các địa danh bạn đã đánh dấu, hoặc gợi ý đầu tiên của mỗi buổi.')}</span>
+      </div>`;
+  }
 
   html += `<div style="opacity: 0; animation: fadeIn 0.3s forwards;">`;
   if (!dayItinerary.morning) {
@@ -1231,6 +1429,64 @@ function renderResult() {
    bắt buộc, để lại cũng không gây lỗi vì không còn gì gọi tới nó nữa). */
 
 /* ============ Chuyển sang tab Bản đồ kèm điểm đến ============ */
+/**
+ * Chọn các điểm tham quan của ngày để vẽ tuyến: ưu tiên mục người dùng đã đánh dấu,
+ * nếu chưa đánh dấu mục nào thì lấy gợi ý đầu tiên (điểm cao nhất) của mỗi buổi.
+ */
+function collectDayRouteStops(day) {
+  const d = state.generatedItinerary[day];
+  if (!d) return [];
+  const slots = [
+    { slotKey: 'morningVisit', items: d.morning && d.morning.visit },
+    { slotKey: 'afternoonVisit', items: d.afternoon && d.afternoon.visit },
+    { slotKey: 'nightlife', items: d.evening && d.evening.visit }
+  ];
+  const ticked = [];
+  const firsts = [];
+  slots.forEach(({ slotKey, items }) => {
+    const real = (items || []).filter(it => !it.synthetic); // tên ghép tự động không có vị trí thật để vẽ tuyến
+    real.forEach((item, idx) => {
+      const key = `${day}-${slotKey}-${escapeHtml(item.keyword || item.name)}`;
+      if (state.checkedDestinations[key]) ticked.push(item);
+      if (idx === 0) firsts.push(item);
+    });
+  });
+  return ticked.length >= 2 ? ticked : firsts;
+}
+
+async function handleShowDayRoute() {
+  const btn = document.getElementById('day-route-btn');
+  const hint = document.getElementById('day-route-hint');
+  if (!btn || btn.disabled) return;
+  const vni = window.VNI18n;
+  const say = (key, params) => { if (hint) { if (vni) vni.set(hint, key, params); else hint.textContent = key; } };
+  if (!window.VNGeo || !window.VNMaps) { say('Chưa tải được mô-đun bản đồ.'); return; }
+
+  const province = state.destProvince || (state.destination ? state.destination.split(',').pop().trim() : '');
+  const picks = collectDayRouteStops(state.selectedDay);
+  if (picks.length < 2) { say('Cần ít nhất 2 địa danh để vẽ tuyến.'); return; }
+
+  btn.disabled = true;
+  const found = [];
+  for (let i = 0; i < picks.length; i++) {
+    say('Đang xác định vị trí {i}/{n}: {name}', { i: i + 1, n: picks.length, name: picks[i].name });
+    const pt = await window.VNGeo.geocode(picks[i].name, province);
+    if (pt) found.push({ name: picks[i].name, lat: pt.lat, lng: pt.lng });
+  }
+  btn.disabled = false;
+
+  if (found.length < 2) {
+    say('Chưa tìm được vị trí đủ để vẽ tuyến. Thử đánh dấu các địa danh khác.');
+    return;
+  }
+  const skipped = picks.length - found.length;
+  if (skipped) say('Đã bỏ qua {n} địa danh không tìm thấy vị trí.', { n: skipped });
+  else say('Đã vẽ tuyến trên tab Bản đồ.');
+  window.VNMaps.showDayRoute(found, vni ? vni.t('Ngày {day}', { day: state.selectedDay }) : `Ngày ${state.selectedDay}`);
+}
+window.handleShowDayRoute = handleShowDayRoute;
+
+
 function goToMapWithItem(cardId) {
   const entry = (window.__cardRegistry || [])[cardId];
   if (!entry) return;

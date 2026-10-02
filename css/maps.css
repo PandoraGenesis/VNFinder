@@ -578,3 +578,18 @@
     opacity: 0.3;
   }
 }
+
+/* Điểm đánh số của tuyến trong ngày (VNMaps.showDayRoute) */
+.vnmap-stop-marker span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent, #C62828);
+  color: #fff;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  font: 700 13px var(--font-display, system-ui, sans-serif);
+}

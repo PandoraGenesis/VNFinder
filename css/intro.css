@@ -1268,7 +1268,7 @@ html[lang="vn"] .auth-login .auth-icon {
   left: -30px; /* Đưa sang bên trái khối stage-container */
   width: 480px;
   height: 650px;
-  background: url('../assets/img/Bản đồ hình chữ S.jpg') no-repeat center / contain;
+  background: url('../assets/img/ban-do-hinh-chu-s.webp') no-repeat center / contain;
   mix-blend-mode: multiply;
   filter: grayscale(100%) opacity(0.15); /* Biến thành bóng xám mờ */
   pointer-events: none;
