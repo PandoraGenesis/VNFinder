@@ -23,101 +23,83 @@
 
 **VNFinder** là một ứng dụng web giúp người dùng tra cứu địa điểm và tự động tạo lịch trình du lịch tại Việt Nam. Dự án hướng tới việc biến quá trình lên kế hoạch cho một chuyến đi — vốn thường rời rạc giữa tìm địa điểm, xem bản đồ, và sắp xếp thời gian biểu — thành một trải nghiệm liền mạch trên một giao diện duy nhất, hỗ trợ song ngữ Việt - Anh.
 
+Đặc biệt, dự án được tích hợp các thuật toán hỗ trợ thông minh để cá nhân hóa hoàn toàn trải nghiệm du lịch của người dùng. Đây là dự án tham dự cuộc thi **Gia Lai Youth HackAIthon 2026**.
 
-## ✨ Tính Năng Chính
+## ✨ Tính Năng Nổi Bật
 
-* **Tìm kiếm địa điểm:** Tra cứu điểm đến/điểm khởi hành theo bộ lọc chỉ mục A-Z, kèm bộ lọc theo miền/vùng (region filter).
-* **Gợi ý lịch trình (Lịch Trình Đề Xuất):** Tự động sinh kế hoạch theo khoảng thời gian người dùng chọn, có stepper để chọn số đêm lưu trú, chia mỗi ngày thành các khung giờ sáng/trưa/chiều/tối.
-* **Dữ liệu lịch trình theo tầng (tiered data):** Nội dung gợi ý được lấy từ một tập dữ liệu thực tế phân theo địa phương, thay vì sinh nội dung chung chung ngẫu nhiên.
-* **Bản đồ tương tác:** Hiển thị bản đồ bằng Leaflet + OpenStreetMap, dữ liệu ranh giới quốc gia/tỉnh/xã ở định dạng GeoJSON, kèm chỉ mục tìm kiếm địa danh riêng (`search-index.json`).
-* **Tài khoản người dùng (Auth):** Đăng nhập/đăng ký để lưu lịch trình hoặc tùy chỉnh cá nhân.
-* **Check-in địa điểm:** Cho phép người dùng đánh dấu đã ghé thăm một địa danh.
-* **Cẩm nang du lịch (Guide):** Trang nội dung giới thiệu/hướng dẫn du lịch theo từng vùng miền.
-* **Đa ngôn ngữ (i18n):** Toàn bộ giao diện hỗ trợ song ngữ Việt/Anh; nội dung lịch trình sinh động được tự động dịch qua MyMemory API khi cần.
-* **Quản lý ảnh điểm tham quan:** Ảnh minh họa cho từng địa danh/POI được tổ chức và tải riêng, hỗ trợ xem dạng lightbox.
-
+* **Trợ lý Ảo Thông Minh (AI Chatbot):** Hộp thoại trò chuyện tích hợp sẵn giúp người dùng hỏi đáp về địa điểm, ẩm thực và gợi ý chuyến đi. Hỗ trợ cơ chế "dự phòng ngoại tuyến" (offline fallback) thông minh, có khả năng phân tích từ khóa và trả lời câu hỏi trực tiếp không cần mạng Internet.
+* **Gợi ý lịch trình tự động:** Tự động sinh kế hoạch theo khoảng thời gian người dùng chọn, tối ưu hóa các điểm tham quan dựa trên nhu cầu (nghỉ dưỡng, khám phá, ẩm thực...) và nhịp độ (nhẹ nhàng, năng động). 
+* **Tìm kiếm đa lớp (2-Level Location Picker):** Tra cứu điểm đến/điểm khởi hành theo bộ lọc chỉ mục A-Z, kết hợp bộ lọc theo vùng miền (Bắc, Trung, Nam, Tây Nguyên...).
+* **Bản đồ tương tác thời gian thực:** Tích hợp Leaflet + OpenStreetMap. Hiển thị ranh giới quốc gia, tỉnh, xã bằng file GeoJSON. Đặc biệt cho phép ghim vị trí, đo khoảng cách và xem định tuyến đường đi trực quan.
+* **Đa ngôn ngữ mượt mà (Dynamic i18n):** Toàn bộ giao diện hỗ trợ song ngữ Việt/Anh, tự động cập nhật ngôn ngữ động bằng `MutationObserver` (kể cả khung chat và các nội dung đang hiển thị) mà không cần tải lại trang. Các dữ liệu lịch trình phức tạp được hỗ trợ dịch tự động qua MyMemory API.
+* **Cẩm nang du lịch Wikipedia:** Tra cứu địa danh trực tiếp thông qua Wikipedia API dựa trên tọa độ (GPS) hoặc từ khóa tìm kiếm.
+* **Tài khoản & Đồng bộ Đám mây (Cloud Sync):** Đăng nhập, đăng ký và lưu trữ dữ liệu người dùng (lịch trình yêu thích, điểm check-in) an toàn lên đám mây thông qua JSONBin.io.
+* **Tự động bù trừ tỷ lệ hiển thị (Auto-scale Compensation):** Tự động phát hiện cài đặt độ thu phóng của hệ điều hành (thông qua `devicePixelRatio`) để điều chỉnh lại giao diện web, đảm bảo tỷ lệ hiển thị 100% cực kỳ sắc nét và nhất quán trên mọi màn hình.
 
 ## 🛠️ Công Nghệ & Kiến Trúc
 
-* **Nền tảng:** HTML/CSS/JavaScript thuần, không phụ thuộc framework, chạy trực tiếp trên trình duyệt.
-* **Bản đồ & định tuyến:** Leaflet làm engine hiển thị bản đồ, OpenStreetMap làm nguồn tile.
-* **Dữ liệu địa lý:** GeoJSON theo 3 cấp — ranh giới quốc gia (`vn-boundary.geojson`), tỉnh/thành (`provinces.geojson`), và xã/phường theo từng mã tỉnh (`data/maps/wards/`), cùng dữ liệu đảo (`islands.geojson`).
-* **Dịch tự động:** `i18n-auto.js` gọi MyMemory API để dịch nội dung lịch trình được sinh động, bổ sung cho lớp i18n tĩnh có sẵn.
-* **Tách module theo tính năng:** Mỗi tính năng (auth, check-in, guide, lịch trình, bản đồ...) có cặp file CSS/JS riêng để dễ bảo trì.
-
+* **Nền tảng Core:** HTML5, CSS3, Vanilla JavaScript (Không sử dụng Framework nặng, tối ưu hóa tốc độ tải trang).
+* **Bản đồ & Định tuyến:** LeafletJS, OpenStreetMap Tile Server.
+* **Xử lý Dữ liệu Địa lý:** Dữ liệu cấp 3 (Quốc gia, Tỉnh/Thành, Xã/Phường) tổ chức dưới dạng GeoJSON.
+* **APIs Bên Thứ 3:**
+  * `Wikipedia API`: Trích xuất thông tin bách khoa toàn thư cho địa danh.
+  * `MyMemory API`: Dịch thuật tự động dự phòng.
+  * `JSONBin.io API`: Lưu trữ dữ liệu người dùng.
+* **Xử lý Giao diện:** Sử dụng Flatpickr cho bộ chọn ngày giờ, và hệ thống Icon từ thư viện Lucide.
 
 ## 📁 Cấu Trúc Thư Mục
 
 ```text
 VNFinder/
-├── assets/
-│   └── img/                       # Ảnh minh họa địa danh, ảnh hero, ảnh cẩm nang du lịch
-├── css/
-│   ├── auth.css                   # Giao diện đăng nhập/đăng ký
-│   ├── checkin.css                # Giao diện tính năng check-in địa điểm
-│   ├── custom.css                 # Style tùy chỉnh bổ sung
-│   ├── guide.css                  # Giao diện trang cẩm nang du lịch
-│   ├── intro.css                  # Style cho màn hình giới thiệu/mở đầu
-│   ├── itinerary.css              # Giao diện thẻ lịch trình (card layout) + lightbox ảnh
-│   ├── maps.css                   # Style riêng cho tab bản đồ
-│   └── style.css                  # Style tổng thể của ứng dụng
-├── data/
-│   ├── maps/
-│   │   ├── README.md              # Ghi chú về nguồn/định dạng dữ liệu bản đồ
-│   │   ├── islands.geojson        # Dữ liệu ranh giới các đảo
-│   │   ├── provinces.geojson      # Dữ liệu ranh giới cấp tỉnh/thành
-│   │   ├── search-index.json      # Chỉ mục tìm kiếm địa danh cho bản đồ
-│   │   └── wards/                 # Dữ liệu ranh giới cấp xã/phường, theo mã tỉnh
-│   └── vn-boundary.geojson        # Ranh giới quốc gia Việt Nam
-├── js/
-│   ├── auth.js                    # Logic đăng nhập/đăng ký
-│   ├── checkin.js                 # Logic tính năng check-in địa điểm
-│   ├── data.js                    # Dữ liệu địa danh tĩnh
-│   ├── guide.js                   # Logic trang cẩm nang du lịch
-│   ├── i18n-auto.js               # Dịch tự động nội dung động qua MyMemory API
-│   ├── i18n.js                    # Lớp đa ngôn ngữ tĩnh (VN/EN)
-│   ├── itinerary-data.js          # Dữ liệu lịch trình theo tầng, phân theo địa phương
-│   ├── location.js                # Logic tìm kiếm/chọn địa điểm
-│   ├── maps.js                    # Logic hiển thị bản đồ, tương tác với dữ liệu GeoJSON
-│   ├── nav.js                     # Logic điều hướng giữa các tab/panel
-│   ├── nights-stepper.js          # Bộ chọn số đêm lưu trú
-│   ├── poi-images.js              # Quản lý/tải ảnh cho từng điểm tham quan (POI)
-│   ├── region-filter.js           # Logic lọc địa danh theo miền/vùng
-│   └── script.js                  # Logic chính, khởi tạo và liên kết các module
-├── .gitignore
-├── LICENSE
-├── tinh-thanh-cong-thong-tin-du-lich-url.csv
+├── assets/img/                    # Tài nguyên hình ảnh, logo, og-image, banner
+├── css/                           # Các stylesheet được module hóa
+│   ├── style.css                  # Style gốc toàn cục
+│   ├── chat.css                   # Giao diện hộp thoại trợ lý ảo
+│   ├── maps.css                   # Giao diện bản đồ Leaflet
+│   ├── custom.css                 # Tùy chỉnh DatePicker (Flatpickr) & Location Picker
+│   └── ...                        # auth, checkin, guide, intro, itinerary
+├── data/                          # Tập dữ liệu JSON & GeoJSON nội bộ
+│   ├── maps/wards/                # Ranh giới cấp xã/phường
+│   ├── islands.geojson            # Dữ liệu biển đảo
+│   └── vn-boundary.geojson        # Ranh giới Việt Nam
+├── js/                            # Mã nguồn JavaScript (Vanilla JS)
+│   ├── script.js                  # Khởi tạo và điều phối các module
+│   ├── chat-*.js                  # Logic Trợ lý AI (Content, Knowledge, Assistant)
+│   ├── i18n*.js                   # Logic đa ngôn ngữ và dịch tự động
+│   ├── maps.js                    # Tương tác bản đồ
+│   ├── auth.js                    # Đăng nhập & đồng bộ JSONBin
+│   └── ...                        # checkin, data, guide, location, nav, region-filter
+├── index.html                     # Trang ứng dụng duy nhất (Single Page App thuần)
 └── README.md
 ```
 
-
 ## 🚀 Hướng Dẫn Cài Đặt & Vận Hành
 
-#### 1. Clone Repository
+#### 1. Tải Mã Nguồn
 
 ```bash
-    git clone https://github.com/PandoraGenesis/VNFinder.git
-    cd VNFinder
+git clone https://github.com/PandoraGenesis/VNFinder.git
+cd VNFinder
 ```
 
-#### 2. Chạy Ứng Dụng
+#### 2. Khởi Chạy Ứng Dụng
 
-Vì đây là dự án HTML/CSS/JS thuần, không cần build hay cài dependency. Có hai cách chạy:
+Ứng dụng được viết hoàn toàn bằng Client-side scripting (Front-end thuần), không yêu cầu `npm install` hay cài đặt thư viện rườm rà.
 
-- **Mở trực tiếp:** Mở file `index.html` bằng trình duyệt.
-- **Chạy qua local server (khuyên dùng, tránh lỗi CORS khi fetch dữ liệu GeoJSON/JSON):**
+- **Chạy qua Local Server (Khuyên dùng):** Tránh lỗi CORS khi trình duyệt đọc các file cục bộ (`.json`, `.geojson`).
 ```bash
-    python -m http.server 8000
+python -m http.server 8000
 ```
 Sau đó truy cập `http://localhost:8000` trên trình duyệt.
 
+- **Mở trực tiếp (Chế độ xem trước):** Click đúp vào file `index.html`. Một số tính năng tải dữ liệu địa lý có thể không hoạt động trên một số trình duyệt bảo mật cao.
 
 ## 👥 Nhóm Thực Hiện
-- Trường: THPT Quốc Học Quy Nhơn
-
+- **Đơn vị:** Trường THPT Quốc Học Quy Nhơn.
+- **Mục tiêu:** Tham gia cuộc thi **Gia Lai Youth HackAIthon 2026**.
 
 ## 📜 Giấy Phép
-Phát hành theo giấy phép MIT.
+Dự án được phân phối dưới giấy phép MIT License.
 
 ---
 
@@ -125,100 +107,82 @@ Phát hành theo giấy phép MIT.
 
 ## 📌 Project Introduction
 
-**VNFinder** is a web app that helps users look up destinations and automatically generate travel itineraries across Vietnam. The project aims to turn trip planning — usually scattered across finding places, checking maps, and building a schedule — into one seamless experience on a single interface, with bilingual Vietnamese-English support.
+**VNFinder** is a comprehensive web application designed to help users look up destinations and automatically generate highly personalized travel itineraries across Vietnam. The project aims to consolidate trip planning — usually scattered across multiple platforms for finding places, checking maps, and building schedules — into one seamless, bilingual experience on a single interface.
 
+Additionally, the project integrates smart algorithms to deeply personalize the user travel experience. This is an entry project for the **Gia Lai Youth HackAIthon 2026**.
 
 ## ✨ Key Features
 
-* **Location search:** Look up destinations/departure points through an A-Z index filter, plus a region filter.
-* **Suggested itinerary generator:** Automatically builds a plan for the chosen date range, with a stepper to pick the number of nights, splitting each day into morning/noon/afternoon/evening slots.
-* **Tiered itinerary data:** Suggested content is pulled from a real, locality-level dataset rather than generic randomized content.
-* **Interactive map:** Map rendering via Leaflet + OpenStreetMap, with national/provincial/ward boundary data in GeoJSON, plus a dedicated place search index (`search-index.json`).
-* **User accounts (Auth):** Sign in/sign up to save itineraries or personal customizations.
-* **Location check-in:** Lets users mark a destination as visited.
-* **Travel guide:** A content page introducing/guiding travel by region.
-* **Multilingual (i18n):** The whole interface supports Vietnamese/English; dynamically generated itinerary content is auto-translated via the MyMemory API when needed.
-* **Point-of-interest image management:** Illustrative images per destination/POI are organized and loaded separately, with lightbox viewing.
-
+* **Smart AI Chatbot:** Built-in chat assistant that helps users inquire about destinations, local cuisine, and travel plans. It features a robust "offline fallback" parser that intelligently identifies keywords and answers common questions directly without requiring an internet connection.
+* **Automated Itinerary Generation:** Dynamically generates plans based on chosen dates, optimizing sightseeing spots according to personal preferences (relaxation, adventure, culinary) and pace (relaxed vs active).
+* **2-Level Location Picker:** Quickly look up destinations or departure points through an A-Z index combined with regional filters (North, Central, South, Highlands, etc.).
+* **Real-time Interactive Maps:** Integrated with Leaflet and OpenStreetMap. Visualizes national, provincial, and ward boundaries via GeoJSON. Allows users to pin locations, measure distances, and visually route their trips.
+* **Dynamic Multilingual Support (i18n):** The entire UI supports seamless switching between English and Vietnamese without reloading the page. It utilizes a custom `MutationObserver` to instantly translate active elements (like the chatbox UI), while complex dynamic itinerary data is auto-translated using the MyMemory API.
+* **Wikipedia Travel Guide:** Look up detailed encyclopedic information for landmarks directly via the Wikipedia API based on GPS coordinates or search queries.
+* **Cloud Synchronization (Auth):** Securely sign in/up and save user data (favorite itineraries, check-in spots) to the cloud using JSONBin.io.
+* **Auto-scale Compensation:** Automatically detects the operating system's zoom settings (via `devicePixelRatio`) and counters it within the web UI, guaranteeing a sharp and consistently sized 100% scale rendering across all devices.
 
 ## 🛠️ Technology & Architecture
 
-* **Stack:** Plain HTML/CSS/JavaScript, no framework dependency, runs directly in the browser.
-* **Maps & routing:** Leaflet as the map rendering engine, OpenStreetMap as the tile source.
-* **Geographic data:** Three-tier GeoJSON — national boundary (`vn-boundary.geojson`), provincial boundaries (`provinces.geojson`), and ward-level boundaries per province code (`data/maps/wards/`), plus island data (`islands.geojson`).
-* **Auto-translation:** `i18n-auto.js` calls the MyMemory API to translate dynamically generated itinerary content, complementing the existing static i18n layer.
-* **Feature-based modularity:** Each feature (auth, check-in, guide, itinerary, maps...) has its own CSS/JS pair for easier maintenance.
-
+* **Core Stack:** HTML5, CSS3, Vanilla JavaScript (No heavy frameworks, highly optimized for loading speed).
+* **Mapping & Routing:** LeafletJS Engine, OpenStreetMap Tile Server.
+* **Geospatial Processing:** 3-tier boundary data (National, Provincial, Ward) stored as raw GeoJSON formats.
+* **Third-Party APIs:**
+  * `Wikipedia API`: Contextual extraction for travel guides.
+  * `MyMemory API`: Dynamic text translation.
+  * `JSONBin.io API`: Cloud-based user state storage.
+* **UI Components:** Flatpickr for date selection, Lucide library for SVG iconography.
 
 ## 📁 Directory Structure
 
 ```text
 VNFinder/
-├── assets/
-│   └── img/                       # Destination photos, hero images, travel guide images
-├── css/
-│   ├── auth.css                   # Sign-in/sign-up UI
-│   ├── checkin.css                # Location check-in UI
-│   ├── custom.css                 # Additional custom styling
-│   ├── guide.css                  # Travel guide page UI
-│   ├── intro.css                  # Intro/landing screen styling
-│   ├── itinerary.css              # Itinerary card layout + image lightbox
-│   ├── maps.css                   # Styling specific to the map tab
-│   └── style.css                  # Overall app styling
-├── data/
-│   ├── maps/
-│   │   ├── README.md              # Notes on map data source/format
-│   │   ├── islands.geojson        # Island boundary data
-│   │   ├── provinces.geojson      # Provincial-level boundary data
-│   │   ├── search-index.json      # Place search index for the map
-│   │   └── wards/                 # Ward-level boundary data, by province code
-│   └── vn-boundary.geojson        # Vietnam national boundary
-├── js/
-│   ├── auth.js                    # Sign-in/sign-up logic
-│   ├── checkin.js                 # Location check-in logic
-│   ├── data.js                    # Static location dataset
-│   ├── guide.js                   # Travel guide page logic
-│   ├── i18n-auto.js               # Auto-translation of dynamic content via MyMemory API
-│   ├── i18n.js                    # Static bilingual layer (VN/EN)
-│   ├── itinerary-data.js          # Tiered itinerary data, organized by locality
-│   ├── location.js                # Location search/selection logic
-│   ├── maps.js                    # Map rendering logic, interacts with GeoJSON data
-│   ├── nav.js                     # Tab/panel navigation logic
-│   ├── nights-stepper.js          # Stay-length (nights) stepper control
-│   ├── poi-images.js              # Loads/manages images per point of interest (POI)
-│   ├── region-filter.js           # Region-based destination filtering
-│   └── script.js                  # Main logic, initializes and wires up modules
-├── .gitignore
-├── LICENSE
-├── tinh-thanh-cong-thong-tin-du-lich-url.csv
+├── assets/img/                    # Destination photos, logos, banners
+├── css/                           # Modular stylesheets
+│   ├── style.css                  # Global root styles
+│   ├── chat.css                   # Chatbot UI styling
+│   ├── maps.css                   # Leaflet map styling
+│   ├── custom.css                 # Flatpickr & 2-Level Location Picker overrides
+│   └── ...                        # auth, checkin, guide, intro, itinerary
+├── data/                          # Local JSON & GeoJSON datasets
+│   ├── maps/wards/                # Ward-level boundaries
+│   ├── islands.geojson            # Island boundaries
+│   └── vn-boundary.geojson        # Vietnam national boundaries
+├── js/                            # Vanilla JavaScript source files
+│   ├── script.js                  # Main entry, coordinates all modules
+│   ├── chat-*.js                  # AI Assistant logic (Content, Knowledge, Assistant)
+│   ├── i18n*.js                   # Multilingual logic & auto-translation
+│   ├── maps.js                    # Map interactions
+│   ├── auth.js                    # Authentication & JSONBin sync
+│   └── ...                        # checkin, data, guide, location, nav, region-filter
+├── index.html                     # Single Page Application root
 └── README.md
 ```
-
 
 ## 🚀 Installation & Operation Guide
 
 #### 1. Clone the Repository
 
 ```bash
-    git clone https://github.com/PandoraGenesis/VNFinder.git
-    cd VNFinder
+git clone https://github.com/PandoraGenesis/VNFinder.git
+cd VNFinder
 ```
 
-#### 2. Run the App
+#### 2. Run the Application
 
-This is a plain HTML/CSS/JS project — no build step or dependencies required. Two ways to run it:
+This is a pure Client-side HTML/CSS/JS project. There is no need for `npm install` or complex build tools.
 
-- **Open directly:** Open `index.html` in a browser.
-- **Run via a local server (recommended, avoids CORS issues when fetching GeoJSON/JSON data):**
+- **Run via Local Server (Recommended):** Avoids strict CORS browser policies when fetching local `.json` and `.geojson` files.
 ```bash
-    python -m http.server 8000
+python -m http.server 8000
 ```
-Then visit `http://localhost:8000` in your browser.
+Then visit `http://localhost:8000` in your web browser.
 
+- **Open Directly (Preview Mode):** Simply double-click `index.html`. Note that some geospatial data loading features might be blocked by browser security protocols.
 
 ## 👥 Project Team
-- School: Quoc Hoc Quy Nhon High School
-
+- **School:** Quoc Hoc Quy Nhon High School.
+- **Event:** Gia Lai Youth HackAIthon 2026.
 
 ## 📜 License
 Released under the MIT license.
