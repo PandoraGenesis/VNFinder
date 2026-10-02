@@ -1153,55 +1153,78 @@ function escapeHtml(str) {
 function renderDestCard(item, kind, slotKey, provinceStr) {
   const isFood = kind === 'food';
   const title = isFood ? item.dish : item.name;
-  const bodyText = isFood ? item.desc : (item.tips || item.desc || '');
-  const hours = SLOT_HOURS[slotKey] || '';
+  
+  const descText = item.desc || '';
+  const tipsText = item.tips || '';
+  
   const safeTitle = escapeHtml(title);
-  const safeBody = escapeHtml(bodyText);
+  const safeDesc = escapeHtml(descText || tipsText || title);
+  
+  // Thông tin mở rộng
+  const priceFallback = isFood ? (FOOD_PRICE_FALLBACK_BY_SLOT[slotKey] || FOOD_PRICE_FALLBACK_BY_SLOT.lunch) : VISIT_TICKET_FALLBACK;
+  const priceVal = escapeHtml(isFood ? (item.priceRange || priceFallback) : (item.ticketPrice || priceFallback));
+  
+  const locVal = escapeHtml(isFood ? ((item.suggestedSpots && item.suggestedSpots.length) ? item.suggestedSpots.join('; ') : FOOD_SPOT_FALLBACK) : (item.address || VISIT_ADDRESS_FALLBACK_TPL(provinceStr)));
+
+  const displayTips = escapeHtml(tipsText || (isFood ? "Vào giờ cao điểm quán có thể đông, bạn nên sắp xếp thời gian hợp lý nhé." : "Một trải nghiệm văn hóa địa phương tuyệt vời đang chờ đón bạn!"));
+
   const safeKeyword = escapeHtml(item.keyword || title);
   const safeProvince = escapeHtml(provinceStr);
   const checkKey = `${state.selectedDay}-${slotKey}-${safeKeyword}`;
   const isChecked = !!state.checkedDestinations[checkKey];
 
-  // Đăng ký thẻ vào bộ nhớ tạm để cửa sổ chi tiết + nút chỉ đường có thể tra lại đầy đủ dữ liệu
   const cardId = window.__cardRegistry.length;
   window.__cardRegistry.push({ item, kind, slotKey, provinceStr, title });
 
-  // Dòng gợi ý ngắn (giá tham khảo cho món ăn / địa chỉ cho địa danh) — dữ
-  // liệu này vốn có sẵn trong itinerary-data.js nhưng trước đây chỉ hiện
-  // trong popup chi tiết; giờ đưa thẳng lên card để card vẫn đủ thông tin
-  // dù không còn ảnh minh hoạ.
-  const highlight = getPrimaryHighlight(item, kind, slotKey, provinceStr);
-  const safeHighlight = escapeHtml(highlight.value);
-  // Lý do gợi ý do bộ chấm điểm sinh ra (nếu có); js/i18n-ext.js tự dịch khi đổi ngôn ngữ
   const vni = window.VNI18n;
   const whyHtml = (vni && item._why && item._why.length)
-    ? `<div class="dest-why"><i data-lucide="sparkles" class="meta-icon"></i> ${item._why.slice(0, 2).map(w => vni.reasonSpan(w)).join(' · ')}</div>`
+    ? `<div class="dest-why" style="margin-top: 0.75rem; font-size: 0.8rem; color: var(--accent); display:flex; gap:0.4rem; align-items:flex-start;"><i data-lucide="sparkles" class="meta-icon" style="width:14px; height:14px; margin-top:2px; flex-shrink:0;"></i> <span>${item._why.slice(0, 2).map(w => vni.reasonSpan(w)).join(' · ')}</span></div>`
     : '';
   const unverifiedHtml = (vni && item.synthetic)
-    ? `<div class="dest-why dest-why--unverified"><i data-lucide="info" class="meta-icon"></i> ${vni.reasonSpan({ k: 'unverified' })}</div>`
+    ? `<div class="dest-why dest-why--unverified" style="margin-top: 0.75rem; font-size: 0.8rem; color: #ea580c; display:flex; gap:0.4rem; align-items:flex-start;"><i data-lucide="info" class="meta-icon" style="width:14px; height:14px; margin-top:2px; flex-shrink:0;"></i> <span>${vni.reasonSpan({ k: 'unverified' })}</span></div>`
     : '';
 
+  // Theme colors
+  const themeColor = isFood ? '#ea580c' : '#059669';
+  const themeBg = isFood ? 'rgba(234, 88, 12, 0.05)' : 'rgba(5, 150, 105, 0.05)';
+  const themeBadgeBg = isFood ? 'rgba(234, 88, 12, 0.1)' : 'var(--accent-soft)';
+  const badgeIcon = isFood ? 'utensils' : 'map-pin';
+
   return `
-    <div class="destination-card ${isFood ? 'food-card' : 'visit-card'} ${isChecked ? 'is-checked' : ''}" data-card-id="${cardId}" onclick="openDestDetail(event, ${cardId})">
-      <div class="dest-card-header">
-        <button type="button" class="dest-type-badge" title="Chỉ đường trên bản đồ" onclick="event.stopPropagation(); goToMapWithItem(${cardId})">
-          <i data-lucide="map-pin"></i>
+    <article class="destination-card ${isFood ? 'food-card' : 'visit-card'} ${isChecked ? 'is-checked' : ''}" data-card-id="${cardId}" onclick="openDestDetail(event, ${cardId})" style="background: var(--vn-surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+      <div class="dest-card-header" style="display: flex; align-items: flex-start; gap: 0.65rem; padding: 1rem 1rem 0;">
+        <button type="button" class="dest-type-badge" style="background: ${themeBadgeBg};" title="Chỉ đường trên bản đồ" onclick="event.stopPropagation(); goToMapWithItem(${cardId})">
+          <i data-lucide="${badgeIcon}" style="color: ${themeColor};"></i>
         </button>
-        <h3 class="dest-title i18n-dyn" data-vi="${safeTitle}">${safeTitle}</h3>
+        <h4 class="dest-title i18n-dyn" data-vi="${safeTitle}" style="flex: 1; margin: 0; font-family: var(--font-display); font-size: 1.05rem; font-weight: 700; color: var(--ink); line-height: 1.3;">${safeTitle}</h4>
         <label class="dest-checkin-label" onclick="event.stopPropagation()" title="Đánh dấu đã trải nghiệm">
           <input type="checkbox" class="dest-checkin-cb" data-key="${checkKey}" ${isChecked ? 'checked' : ''}>
           <span class="dest-checkin-mark"></span>
         </label>
       </div>
-      <div class="dest-body">
-        <div class="dest-meta"><i data-lucide="clock" class="meta-icon"></i> ${hours}</div>
-        <div class="dest-highlight"><i data-lucide="${highlight.icon}" class="meta-icon"></i> <span class="i18n-dyn" data-vi="${safeHighlight}">${safeHighlight}</span></div>
-        <div class="dest-tips">
-          <p class="i18n-dyn" data-vi="${safeBody}">${safeBody}</p>
+      <div class="dest-body" style="padding: 0.75rem 1rem 1rem;">
+        <p class="dest-meta i18n-dyn" data-vi="${safeDesc}" style="color: var(--slate-soft); margin-bottom: 1rem; font-size: 0.85rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${safeDesc}</p>
+        
+        <div class="dest-highlight" style="color: var(--ink); font-weight: 500; font-size: 0.85rem; margin-bottom: 0.5rem; display: flex; gap: 0.4rem; align-items: flex-start;">
+          <i data-lucide="wallet" class="meta-icon" style="color: #059669; width: 16px; height: 16px; margin-top: 2px; flex-shrink: 0;"></i> 
+          <span><strong class="i18n-dyn" data-vi="Giá:">Giá:</strong> <span class="i18n-dyn" data-vi="${priceVal}">${priceVal}</span></span>
         </div>
+        
+        <div class="dest-highlight" style="color: var(--ink); font-weight: 500; font-size: 0.85rem; margin-bottom: 0.5rem; display: flex; gap: 0.4rem; align-items: flex-start;">
+          <i data-lucide="navigation" class="meta-icon" style="color: var(--blue); width: 16px; height: 16px; margin-top: 2px; flex-shrink: 0;"></i> 
+          <span><strong class="i18n-dyn" data-vi="${isFood ? 'Gợi ý quán' : 'Địa điểm'}:">${isFood ? 'Gợi ý quán' : 'Địa điểm'}:</strong> <span class="i18n-dyn" data-vi="${locVal}">${locVal}</span></span>
+        </div>
+        
+        <div class="dest-tips" style="margin-top: 1rem; padding: 0.75rem; background: ${themeBg}; border-radius: 8px; border-left: 3px solid ${themeColor};">
+          <p style="margin: 0; color: ${themeColor}; font-size: 0.85rem; display: flex; gap: 0.4rem; align-items: flex-start;">
+            <i data-lucide="lightbulb" style="width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px;"></i> 
+            <span><strong class="i18n-dyn" data-vi="Mẹo nhỏ:">Mẹo nhỏ:</strong> <span class="i18n-dyn" data-vi="${displayTips}">${displayTips}</span></span>
+          </p>
+        </div>
+        
         ${unverifiedHtml || whyHtml}
       </div>
-    </div>
+    </article>
   `;
 }
 
