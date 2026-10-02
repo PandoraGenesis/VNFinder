@@ -340,9 +340,10 @@ html[lang="vn"] .auth-login .auth-icon {
 
 .sh-hero__scroll {
   position: absolute;
-  right: 48px;
-  bottom: 40px;
-  z-index: 1;
+  right: 120px;
+  bottom: 70px;
+  transform: translateX(50%);
+  z-index: 3;
   display: flex;
   flex-direction: column;
   align-items: center;
