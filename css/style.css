@@ -169,6 +169,85 @@ svg {
   gap: clamp(2rem, 5vw, 5rem);
 }
 
+/* --- Form Matrix (Căn chỉnh các hàng ô nhập liệu đối xứng 2 bên) --- */
+.planner-form-matrix {
+  display: grid;
+  grid-template-columns: minmax(320px, 1.25fr) minmax(260px, 1fr);
+  gap: 1.8rem 2.2rem;
+  align-items: stretch;
+}
+
+@media (max-width: 768px) {
+  .planner-form-matrix {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+.planner-matrix-cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+  position: relative;
+}
+
+/* Stacking context để dropdown luôn nổi phía trên hàng bên dưới */
+.planner-matrix-cell.cell-duration,
+.planner-matrix-cell.cell-departure {
+  z-index: 30;
+}
+
+.planner-matrix-cell.cell-dates,
+.planner-matrix-cell.cell-destination {
+  z-index: 20;
+}
+
+.planner-matrix-cell.cell-guests,
+.planner-matrix-cell.cell-budget {
+  z-index: 10;
+}
+
+.matrix-label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--ink);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  line-height: 1.4;
+}
+
+.sub-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--slate);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1.4;
+}
+
+.sub-fields-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: auto;
+  width: 100%;
+}
+
+.sub-fields-row.guests-row {
+  gap: 12px;
+}
+
+.matrix-input-bottom {
+  margin-top: auto;
+  width: 100%;
+}
+
 .field {
   margin-top: 2rem;
 }
@@ -200,7 +279,9 @@ svg {
   border: 1.5px solid var(--border);
   border-radius: 12px;
   padding: 0.25rem;
-  margin-bottom: 0.75rem;
+  height: 50px;
+  box-sizing: border-box;
+  margin-bottom: 0;
 }
 
 .stepper-btn {
@@ -221,6 +302,12 @@ svg {
   background: #fff;
   color: var(--accent);
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.stepper-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .stepper input {
@@ -245,6 +332,76 @@ svg {
 .stepper input:focus,
 .stepper input:focus-visible {
   outline: none !important;
+}
+
+/* --- Ô nhập Chi phí --- */
+.cost-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 50px;
+  background: #F8FAFC;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 0 16px;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.cost-input-wrap:focus-within {
+  border-color: var(--accent) !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
+}
+
+.cost-input-wrap input {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-size: 1.05rem;
+  font-weight: 700;
+  outline: none;
+  font-family: var(--font-display);
+  min-width: 0;
+  text-align: center;
+  padding: 0 65px;
+  box-sizing: border-box;
+}
+
+.cost-unit {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--slate);
+  font-size: 0.92rem;
+  font-weight: 700;
+  white-space: nowrap;
+  user-select: none;
+  pointer-events: none;
+}
+
+.date-input {
+  width: 100%;
+  height: 50px;
+  padding: 0 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: #F8FAFC;
+  color: var(--ink);
+  font-size: 0.95rem;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.date-input:focus {
+  border-color: var(--accent);
+  background: #fff;
 }
 
 .preset-btns {
@@ -276,21 +433,24 @@ svg {
   border-color: rgba(198, 40, 40, 0.3);
 }
 
-/* --- Combobox Điểm khởi hành --- */
+/* --- Combobox Điểm khởi hành & Điểm đến --- */
 .combobox {
   position: relative;
-  margin-top: 1rem;
+  margin-top: 0;
+  width: 100%;
 }
 
 .combobox-trigger {
   width: 100%;
+  height: 50px;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
   background: #F8FAFC;
   border: 1.5px solid var(--border);
   border-radius: 12px;
-  padding: 0.85rem 1rem;
+  padding: 0 1rem;
   font-family: var(--font-body);
   font-size: 0.95rem;
   font-weight: 600;
@@ -439,37 +599,81 @@ svg {
 }
 
 .tag-group {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
   margin-top: 0.85rem;
+  width: 100%;
 }
 
 .tag {
-  flex: 1 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   border: 2px solid var(--border);
   border-radius: 12px;
   background: #ffffff;
-  color: var(--slate);
-  padding: 0.55rem 0.4rem;
+  color: #1e293b;
+  padding: 0.75rem 0.5rem;
   font-family: var(--font-body);
-  font-size: clamp(0.75rem, 1.2vw, 0.95rem);
+  font-size: clamp(0.88rem, 1.05vw, 1.05rem);
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  user-select: none;
+  width: 100%;
 }
 
 .tag:hover {
   border-color: var(--accent);
+  color: var(--accent);
+  background: #F0FDFA;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(13, 148, 136, 0.1);
 }
 
 .tag.active {
   background: var(--accent);
   border-color: var(--accent);
   color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
+}
+
+@media (max-width: 1024px) {
+  .tag {
+    font-size: 0.9rem;
+    padding: 0.7rem 0.35rem;
+  }
+}
+
+@media (max-width: 860px) {
+  .tag-group {
+    gap: 0.5rem;
+  }
+  .tag {
+    font-size: 0.82rem;
+    padding: 0.65rem 0.25rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .tag-group {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .tag {
+    font-size: 0.9rem;
+    padding: 0.75rem 0.5rem;
+  }
+}
+
+@media (max-width: 440px) {
+  .tag-group {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* =====================================================================

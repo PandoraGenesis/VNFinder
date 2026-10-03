@@ -1095,6 +1095,23 @@ generateBtn.addEventListener("click", () => {
     // Điểm đến cấp 2 cụ thể (vd: "Pleiku, Gia Lai") và tỉnh tương ứng
     const provinceStr = state.destProvince || state.destination.split(',').pop().trim();
 
+    // Thu thập thông tin số người (nếu có) để tối ưu nhịp độ chuyến đi
+    const chEl = document.getElementById('guests-children');
+    const adEl = document.getElementById('guests-adults');
+    const seEl = document.getElementById('guests-seniors');
+    state.guests = {
+      children: chEl ? (parseInt(chEl.value, 10) || 0) : 0,
+      adults: adEl ? (parseInt(adEl.value, 10) || 0) : 0,
+      seniors: seEl ? (parseInt(seEl.value, 10) || 0) : 0
+    };
+    if ((state.guests.children > 0 || state.guests.seniors > 0) && !state.profile.intensity) {
+      state.profile.intensity = 'low';
+    }
+
+    // Thu thập chi phí dự kiến mỗi người (nếu có)
+    const bgEl = document.getElementById('budget-per-person');
+    state.budgetPerPerson = bgEl ? (parseInt(bgEl.value.replace(/\D/g, ''), 10) || 0) : 0;
+
     // Lọc Sở Thích Theo Địa Lý (Quy tắc 1)
     const coastalProvinces = ['Quảng Ninh', 'Hải Phòng', 'Thanh Hóa', 'Nghệ An', 'Hà Tĩnh', 'Quảng Bình', 'Quảng Trị', 'Huế', 'Đà Nẵng', 'Quảng Nam', 'Quảng Ngãi', 'Bình Định', 'Phú Yên', 'Khánh Hòa', 'Ninh Thuận', 'Bình Thuận', 'Bà Rịa - Vũng Tàu', 'Hồ Chí Minh', 'Tiền Giang', 'Bến Tre', 'Trà Vinh', 'Sóc Trăng', 'Bạc Liêu', 'Cà Mau', 'Kiên Giang'];
     const mountainProvinces = ['Hà Giang', 'Cao Bằng', 'Bắc Kạn', 'Tuyên Quang', 'Lào Cai', 'Lai Châu', 'Điện Biên', 'Sơn La', 'Hòa Bình', 'Yên Bái', 'Lạng Sơn', 'Thái Nguyên', 'Gia Lai', 'Đắk Lắk', 'Lâm Đồng', 'Đắk Nông', 'Kon Tum'];

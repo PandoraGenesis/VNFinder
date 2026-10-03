@@ -32,7 +32,7 @@
     href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500;600;700;800;900&family=Sarabun:wght@400;500;600&display=swap"
     rel="stylesheet">
   <!-- style.css giữ nguyên bản gốc từ repo — chỉ dùng cho tab Lịch trình -->
-  <link rel="stylesheet" href="css/style.css?v=2">
+  <link rel="stylesheet" href="css/style.css?v=4">
   <!-- itinerary.css: bổ sung giao diện lưới thẻ nhiều cột, huy hiệu phân loại và lightbox cho kết quả Lịch trình -->
   <link rel="stylesheet" href="css/itinerary.css?v=1">
   <link rel="stylesheet" href="css/chat.css?v=2">
@@ -741,85 +741,35 @@
         <section class="planner-card container">
           <div class="planner-grid" style="display: flex; flex-direction: column; gap: 1.8rem;">
 
-            <!-- Bố cục 2 cột theo thiết kế: Cột trái = Thời gian du lịch (Số Ngày, Số Đêm) + Ngày đến/Ngày đi;
-                 Cột phải = Điểm khởi hành + Điểm đến. Mục "Ngày" đã bị xóa nên Số Ngày/Số Đêm được giãn đều
-                 (flex: 1 mỗi ô) để lấp khoảng trống thay vì thêm lại cột thứ 3. -->
-            <div style="display: flex; flex-wrap: wrap; gap: 2rem; align-items: flex-start;">
+            <!-- Bố cục ma trận 2 cột x 3 hàng: Căn chỉnh chuẩn hàng ngang giữa các ô điền nội dung bên trái và bên phải -->
+            <div class="planner-form-matrix">
 
-              <!-- Cột trái -->
-              <div style="flex: 1 1 480px; min-width: 280px; display: flex; flex-direction: column; gap: 1.8rem;">
-
-                <!-- Thời gian du lịch: Số Ngày, Số Đêm -->
-                <div>
-                  <label
-                    style="font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; color: var(--ink); margin-bottom: 12px; display: flex; align-items: center; gap: 0.5rem;"><i
-                      data-lucide="clock" class="label-icon"></i> Thời gian du lịch</label>
-
-                  <div style="display: flex; flex-wrap: wrap; gap: 16px;">
-                    <div class="sub-field" style="flex: 1; min-width: 120px;">
-                      <label
-                        style="font-size: 0.85rem; font-weight: 600; color: var(--slate); margin-bottom: 8px; display: flex; align-items: center; gap: 4px;"><i
-                          data-lucide="sun" class="label-icon" style="width: 14px; height: 14px;"></i> Số Ngày</label>
-                      <div class="stepper" style="margin-bottom: 0; width: 100%;">
-                        <button type="button" id="btn-minus" class="stepper-btn"><i data-lucide="minus"></i></button>
-                        <input type="number" id="days" value="" style="flex: 1; min-width: 0;">
-                        <button type="button" id="btn-plus" class="stepper-btn"><i data-lucide="plus"></i></button>
-                      </div>
-                    </div>
-
-                    <div class="sub-field" style="flex: 1; min-width: 120px;">
-                      <label
-                        style="font-size: 0.85rem; font-weight: 600; color: var(--slate); margin-bottom: 8px; display: flex; align-items: center; gap: 4px;"><i
-                          data-lucide="moon" class="label-icon" style="width: 14px; height: 14px;"></i> Số Đêm</label>
-                      <div class="stepper" style="margin-bottom: 0; width: 100%;">
-                        <button type="button" id="btn-minus-nights" class="stepper-btn"><i
-                            data-lucide="minus"></i></button>
-                        <input type="number" id="nights" value="" style="flex: 1; min-width: 0;">
-                        <button type="button" id="btn-plus-nights" class="stepper-btn"><i
-                            data-lucide="plus"></i></button>
-                      </div>
+              <!-- HÀNG 1: Thời gian du lịch (Trái) & Điểm khởi hành (Phải) -->
+              <div class="planner-matrix-cell cell-duration">
+                <label class="matrix-label"><i data-lucide="clock" class="label-icon"></i> Thời gian du lịch</label>
+                <div class="sub-fields-row">
+                  <div class="sub-field" style="flex: 1; min-width: 120px;">
+                    <label class="sub-label"><i data-lucide="sun" class="label-icon" style="width: 14px; height: 14px;"></i> Số Ngày</label>
+                    <div class="stepper" style="width: 100%;">
+                      <button type="button" id="btn-minus" class="stepper-btn"><i data-lucide="minus"></i></button>
+                      <input type="number" id="days" value="" style="flex: 1; min-width: 0;">
+                      <button type="button" id="btn-plus" class="stepper-btn"><i data-lucide="plus"></i></button>
                     </div>
                   </div>
-                </div>
-
-                <!-- Ngày đến, Ngày đi -->
-                <div style="display: flex; flex-wrap: wrap; gap: 16px;">
-                  <div class="sub-field" style="flex: 1; min-width: 140px;">
-                    <label
-                      style="font-size: 0.8rem; font-weight: 600; color: var(--slate); margin-bottom: 8px; display: flex; align-items: center; gap: 4px;"><i
-                        data-lucide="calendar-plus" class="label-icon" style="width: 16px; height: 16px;"></i> Ngày
-                      đến</label>
-                    <div style="position: relative; display: flex; align-items: center;">
-                      <input type="text" id="start-date" class="date-input" placeholder="dd/mm/yyyy" maxlength="10"
-                        style="width: 100%; height: 50px; padding: 0 12px; border: 1.5px solid var(--border); border-radius: 12px; background: #F8FAFC; color: var(--ink); font-size: 0.95rem; outline: none; font-family: inherit;">
-                      <i data-lucide="calendar"
-                        style="position: absolute; right: 12px; color: var(--slate); pointer-events: none;"></i>
-                    </div>
-                  </div>
-
-                  <div class="sub-field" style="flex: 1; min-width: 140px;">
-                    <label
-                      style="font-size: 0.8rem; font-weight: 600; color: var(--slate); margin-bottom: 8px; display: flex; align-items: center; gap: 4px;"><i
-                        data-lucide="calendar-minus" class="label-icon" style="width: 16px; height: 16px;"></i> Ngày
-                      đi</label>
-                    <div style="position: relative; display: flex; align-items: center;">
-                      <input type="text" id="end-date" class="date-input" placeholder="dd/mm/yyyy" maxlength="10"
-                        style="width: 100%; height: 50px; padding: 0 12px; border: 1.5px solid var(--border); border-radius: 12px; background: #F8FAFC; color: var(--ink); font-size: 0.95rem; outline: none; font-family: inherit;">
-                      <i data-lucide="calendar"
-                        style="position: absolute; right: 12px; color: var(--slate); pointer-events: none;"></i>
+                  <div class="sub-field" style="flex: 1; min-width: 120px;">
+                    <label class="sub-label"><i data-lucide="moon" class="label-icon" style="width: 14px; height: 14px;"></i> Số Đêm</label>
+                    <div class="stepper" style="width: 100%;">
+                      <button type="button" id="btn-minus-nights" class="stepper-btn"><i data-lucide="minus"></i></button>
+                      <input type="number" id="nights" value="" style="flex: 1; min-width: 0;">
+                      <button type="button" id="btn-plus-nights" class="stepper-btn"><i data-lucide="plus"></i></button>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <!-- Cột phải -->
-              <div style="flex: 1 1 380px; min-width: 260px; display: flex; flex-direction: column; gap: 1.8rem;">
-
-                <!-- Điểm khởi hành (Combobox) -->
-                <div class="field" id="departure-container" style="margin-bottom: 0;">
-                  <label
-                    style="font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; color: var(--ink); margin-bottom: 12px; display: flex; align-items: center; gap: 0.5rem;"><i
-                      data-lucide="navigation" class="label-icon"></i> Điểm khởi hành</label>
+              <div class="planner-matrix-cell cell-departure" id="departure-container">
+                <label class="matrix-label"><i data-lucide="navigation" class="label-icon"></i> Điểm khởi hành</label>
+                <div class="matrix-input-bottom">
                   <div class="combobox" id="departure-combobox">
                     <button type="button" class="combobox-trigger" id="departure-trigger">
                       <span id="departure-text" style="color: var(--slate);">Vui lòng chọn điểm khởi hành</span>
@@ -837,12 +787,33 @@
                     </div>
                   </div>
                 </div>
+              </div>
 
-                <!-- Điểm đến (Combobox) -->
-                <div class="field" id="destination-container" style="margin-bottom: 0;">
-                  <label
-                    style="font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; color: var(--ink); margin-bottom: 12px; display: flex; align-items: center; gap: 0.5rem;"><i
-                      data-lucide="map-pin" class="label-icon"></i> Điểm đến</label>
+              <!-- HÀNG 2: Ngày đến, Ngày đi (Trái) & Điểm đến (Phải) -->
+              <div class="planner-matrix-cell cell-dates">
+                <div class="sub-fields-row" style="margin-top: auto;">
+                  <div class="sub-field" style="flex: 1; min-width: 140px;">
+                    <label class="sub-label"><i data-lucide="calendar-plus" class="label-icon" style="width: 16px; height: 16px;"></i> Ngày đến</label>
+                    <div style="position: relative; display: flex; align-items: center; width: 100%;">
+                      <input type="text" id="start-date" class="date-input" placeholder="dd/mm/yyyy" maxlength="10"
+                        style="width: 100%; height: 50px; padding: 0 12px; border: 1.5px solid var(--border); border-radius: 12px; background: #F8FAFC; color: var(--ink); font-size: 0.95rem; outline: none; font-family: inherit; box-sizing: border-box;">
+                      <i data-lucide="calendar" style="position: absolute; right: 12px; color: var(--slate); pointer-events: none;"></i>
+                    </div>
+                  </div>
+                  <div class="sub-field" style="flex: 1; min-width: 140px;">
+                    <label class="sub-label"><i data-lucide="calendar-minus" class="label-icon" style="width: 16px; height: 16px;"></i> Ngày đi</label>
+                    <div style="position: relative; display: flex; align-items: center; width: 100%;">
+                      <input type="text" id="end-date" class="date-input" placeholder="dd/mm/yyyy" maxlength="10"
+                        style="width: 100%; height: 50px; padding: 0 12px; border: 1.5px solid var(--border); border-radius: 12px; background: #F8FAFC; color: var(--ink); font-size: 0.95rem; outline: none; font-family: inherit; box-sizing: border-box;">
+                      <i data-lucide="calendar" style="position: absolute; right: 12px; color: var(--slate); pointer-events: none;"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="planner-matrix-cell cell-destination" id="destination-container">
+                <label class="matrix-label" style="margin-bottom: 8px;"><i data-lucide="map-pin" class="label-icon"></i> Điểm đến</label>
+                <div class="matrix-input-bottom">
                   <div class="combobox" id="destination-combobox">
                     <button type="button" class="combobox-trigger" id="destination-trigger">
                       <span id="destination-text" style="color: var(--slate);">Vui lòng chọn điểm đến</span>
@@ -872,8 +843,51 @@
                     </div>
                   </div>
                 </div>
-
               </div>
+
+              <!-- HÀNG 3: Số người (Trái) & Chi phí (Phải) -->
+              <div class="planner-matrix-cell cell-guests">
+                <label class="matrix-label"><i data-lucide="users" class="label-icon"></i> Số người</label>
+                <div class="sub-fields-row guests-row">
+                  <div class="sub-field" style="flex: 1 1 120px; min-width: 110px;">
+                    <label class="sub-label" style="white-space: nowrap;"><i data-lucide="baby" class="label-icon" style="width: 14px; height: 14px;"></i> Trẻ em (0 - 15)</label>
+                    <div class="stepper" style="width: 100%;">
+                      <button type="button" id="btn-minus-children" class="stepper-btn" style="width: 36px; height: 36px; flex-shrink: 0;"><i data-lucide="minus"></i></button>
+                      <input type="number" id="guests-children" min="0" max="99" value="" placeholder="0" style="flex: 1; min-width: 0; width: auto;">
+                      <button type="button" id="btn-plus-children" class="stepper-btn" style="width: 36px; height: 36px; flex-shrink: 0;"><i data-lucide="plus"></i></button>
+                    </div>
+                  </div>
+                  <div class="sub-field" style="flex: 1 1 120px; min-width: 110px;">
+                    <label class="sub-label" style="white-space: nowrap;"><i data-lucide="user" class="label-icon" style="width: 14px; height: 14px;"></i> Người lớn (16 - 61)</label>
+                    <div class="stepper" style="width: 100%;">
+                      <button type="button" id="btn-minus-adults" class="stepper-btn" style="width: 36px; height: 36px; flex-shrink: 0;"><i data-lucide="minus"></i></button>
+                      <input type="number" id="guests-adults" min="0" max="99" value="" placeholder="0" style="flex: 1; min-width: 0; width: auto;">
+                      <button type="button" id="btn-plus-adults" class="stepper-btn" style="width: 36px; height: 36px; flex-shrink: 0;"><i data-lucide="plus"></i></button>
+                    </div>
+                  </div>
+                  <div class="sub-field" style="flex: 1 1 120px; min-width: 110px;">
+                    <label class="sub-label" style="white-space: nowrap;"><i data-lucide="heart" class="label-icon" style="width: 14px; height: 14px;"></i> Người già (&gt; 61)</label>
+                    <div class="stepper" style="width: 100%;">
+                      <button type="button" id="btn-minus-seniors" class="stepper-btn" style="width: 36px; height: 36px; flex-shrink: 0;"><i data-lucide="minus"></i></button>
+                      <input type="number" id="guests-seniors" min="0" max="99" value="" placeholder="0" style="flex: 1; min-width: 0; width: auto;">
+                      <button type="button" id="btn-plus-seniors" class="stepper-btn" style="width: 36px; height: 36px; flex-shrink: 0;"><i data-lucide="plus"></i></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="planner-matrix-cell cell-budget" id="budget-container">
+                <label class="matrix-label"><i data-lucide="wallet" class="label-icon"></i> Chi phí</label>
+                <div class="matrix-input-bottom">
+                  <div class="cost-input-wrap"
+                    style="position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 50px; background: #F8FAFC; border: 1.5px solid var(--border); border-radius: 12px; padding: 0 16px; transition: all 0.2s ease; box-sizing: border-box;">
+                    <input type="text" id="budget-per-person" inputmode="numeric" placeholder="0" maxlength="15"
+                      style="width: 100%; height: 100%; border: none; background: transparent; color: var(--ink); font-size: 1.05rem; font-weight: 700; outline: none; font-family: var(--font-display); min-width: 0; text-align: center; padding: 0 65px; box-sizing: border-box;">
+                    <span class="cost-unit" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--slate); font-size: 0.92rem; font-weight: 700; white-space: nowrap; user-select: none; pointer-events: none;">đ/người</span>
+                  </div>
+                </div>
+              </div>
+
             </div>
 
           </div>
@@ -1616,6 +1630,10 @@
   <script src="js/region-filter.js?v=1" defer></script>
   <!-- nights-stepper.js: Tăng/giảm và nhập tay cho mục Số Đêm -->
   <script src="js/nights-stepper.js?v=1" defer></script>
+  <!-- guests-stepper.js: Tăng/giảm và nhập tay cho mục Số người -->
+  <script src="js/guests-stepper.js?v=1" defer></script>
+  <!-- budget-input.js: Xử lý định dạng tiền tệ cho mục Chi phí -->
+  <script src="js/budget-input.js?v=1" defer></script>
   <!-- checkin.js: lưu lịch trình, checkbox check-in và khôi phục lịch trình đã lưu -->
   <script src="js/checkin.js?v=2" defer></script>
   <script src="js/chat-knowledge.js?v=2" defer></script>
