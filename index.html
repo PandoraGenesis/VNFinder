@@ -1652,22 +1652,8 @@
     </div>
   </div>
 
-  <!-- Script tự động bù trừ scale/zoom để giữ nguyên kích thước vật lý -->
-  <script>
-    (function () {
-      function adjustZoomCompensation() {
-        var ratio = window.devicePixelRatio;
-        // Bù trừ tỷ lệ scale: nếu scale là 80% (0.8), zoom sẽ được đặt là 1.25
-        if (ratio) {
-          document.body.style.zoom = 1 / ratio;
-        }
-      }
-      // Chạy ngay lúc load
-      adjustZoomCompensation();
-      // Lắng nghe sự kiện resize (khi người dùng thay đổi zoom)
-      window.addEventListener('resize', adjustZoomCompensation);
-    })();
-  </script>
+
+
 </body>
 
 </html>

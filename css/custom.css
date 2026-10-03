@@ -1,4 +1,22 @@
 /* custom.css - Tùy chỉnh Flatpickr + Location Picker */
+
+/* =====================================================================
+   SAFE ZONE — tránh nút chatbot cố định (fixed, bottom-right) che nội dung
+   Nút chatbot: width 60px + right 24px + margin = ~108px từ cạnh phải
+   ===================================================================== */
+body.sh-app {
+  /* Thêm padding dưới để nội dung cuối trang không bị chatbot che */
+  padding-bottom: 100px;
+}
+
+/* Đảm bảo các section cuối không bị nút chatbot góc phải che */
+.sh-panel > *:last-child,
+.ora-section:last-of-type {
+  margin-bottom: 0;
+  padding-bottom: clamp(60px, 8vw, 100px);
+}
+
+
 /* Tùy chỉnh Flatpickr để giống ảnh thiết kế */
     .flatpickr-calendar {
       font-family: 'Be Vietnam Pro', sans-serif;

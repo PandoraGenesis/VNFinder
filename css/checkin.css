@@ -11,7 +11,7 @@
 }
 
 .checkin-header {
-    max-width: 900px;
+    max-width: 1200px;
     margin: 0 auto 28px;
     text-align: center;
 }
@@ -31,7 +31,7 @@
 }
 
 .checkin-list {
-    max-width: 1080px;
+    max-width: 1400px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;

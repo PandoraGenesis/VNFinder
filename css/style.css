@@ -73,7 +73,7 @@ svg {
    3. LAYOUT DÙNG CHUNG
    ===================================================================== */
 .container {
-  width: min(1100px, 92%);
+  width: min(1280px, 96%);
   margin-inline: auto;
 }
 
