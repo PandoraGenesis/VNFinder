@@ -86,10 +86,20 @@
 .vnchat-controls {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
-.vnchat-minimize, .vnchat-close {
+.vnchat-settings-btn, .vnchat-minimize, .vnchat-close {
   border: 0; background: transparent; color: #fff; font-size: 1.4rem; line-height: 1; cursor: pointer; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.vnchat-settings-btn:hover, .vnchat-minimize:hover, .vnchat-close:hover {
+  opacity: 0.8;
+  transform: scale(1.1);
+}
+.vnchat-settings-btn svg, .vnchat-settings-btn i {
+  width: 18px;
+  height: 18px;
 }
 .vnchat-minimize {
   font-size: 1.6rem;
@@ -204,3 +214,275 @@
 .day-route-hint { font-size: 0.82rem; color: var(--slate-soft); }
 
 .dest-why--unverified { background: var(--warn-bg); color: var(--warn); }
+
+/* ---- Bảng Cài đặt API cho Chatbot ---- */
+.vnchat-settings-drawer {
+  position: absolute;
+  top: 56px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--surface);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  animation: vnchatFadeIn 0.2s ease-out;
+  overflow-y: auto;
+}
+.vnchat-settings-drawer[hidden] {
+  display: none;
+}
+@keyframes vnchatFadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.vnchat-settings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.vnchat-settings-head h4 {
+  margin: 0;
+  font-size: 0.94rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+.vnchat-settings-close-btn {
+  border: 0;
+  background: transparent;
+  font-size: 1.3rem;
+  cursor: pointer;
+  color: var(--slate);
+  padding: 0 4px;
+}
+.vnchat-settings-body {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.vnchat-status-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+.vnchat-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #10b981;
+  flex-shrink: 0;
+}
+.vnchat-status-dot.offline {
+  background: #f59e0b;
+}
+.vnchat-status-dot.worker {
+  background: #3b82f6;
+}
+.vnchat-status-text {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.8rem;
+  min-width: 0;
+}
+.vnchat-status-text strong {
+  font-size: 0.86rem;
+  color: var(--ink);
+}
+.vnchat-status-text span {
+  color: var(--slate);
+  word-break: break-all;
+  font-size: 0.76rem;
+}
+.vnchat-setting-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vnchat-setting-group label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.84rem;
+  color: var(--ink);
+}
+.vnchat-setting-group label a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.78rem;
+}
+.vnchat-setting-group label a:hover {
+  text-decoration: underline;
+}
+.vnchat-setting-group small {
+  display: block;
+  font-size: 0.74rem;
+  color: var(--slate);
+}
+.vnchat-input-row {
+  display: flex;
+  gap: 6px;
+}
+.vnchat-input-row input, .vnchat-setting-group > input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: var(--ink);
+  background: var(--surface);
+}
+.vnchat-input-row input:focus, .vnchat-setting-group > input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+  border-color: transparent;
+}
+.vnchat-input-row button {
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.vnchat-btn-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 3px;
+}
+.vnchat-btn-primary {
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.vnchat-btn-primary:hover {
+  opacity: 0.9;
+}
+.vnchat-btn-ghost {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--slate);
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.vnchat-btn-ghost:hover {
+  background: var(--bg);
+  color: var(--warn);
+}
+.vnchat-btn-test {
+  padding: 9px 14px;
+  border: 1px dashed var(--accent);
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+.vnchat-btn-test:hover {
+  background: var(--accent);
+  color: #fff;
+}
+.vnchat-test-result {
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin-top: 4px;
+}
+.vnchat-test-result.success {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+.vnchat-test-result.error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+/* ---- Nút điều hướng đính kèm (Navigation Actions) ---- */
+.vnchat-nav-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.vnchat-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.vnchat-nav-btn:hover {
+  background: var(--accent);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+/* ---- Huy hiệu cảnh báo & thông tin rủi ro sự cố ---- */
+.vnchat-risk-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.vnchat-risk-high {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.vnchat-risk-medium {
+  background: #fef3c7;
+  color: #b45309;
+}
+.vnchat-risk-low {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+.vnchat-unchanged {
+  margin-top: 6px;
+  font-size: 0.8rem;
+  color: #0f766e;
+  font-weight: 600;
+}
+.vnchat-warning-banner {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  font-size: 0.78rem;
+  margin-bottom: 6px;
+}
+

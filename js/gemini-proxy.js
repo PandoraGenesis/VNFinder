@@ -2,7 +2,7 @@
 // Triển khai:  wrangler secret put GEMINI_API_KEY   (dán key khi được hỏi)
 // Nếu thư mục worker/ của bạn đang dùng nền tảng khác (Vercel, Netlify...), logic giữ nguyên, chỉ đổi cách export.
 
-const MODEL = "gemini-3.8-flash";
+const MODEL = "gemini-2.5-flash";
 const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
 // Thêm domain thật của website (và localhost khi dev)

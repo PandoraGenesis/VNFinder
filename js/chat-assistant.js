@@ -1,34 +1,50 @@
 /**
- * VNFinder — Trợ lý du lịch (chatbot)
+ * VNFinder — Trợ lý du lịch AI (Chatbot)
  *
- * Luồng xử lý:
- *   1. Người dùng gõ yêu cầu tự nhiên ("3 ngày, đi với bố mẹ, thích yên tĩnh").
- *   2. Truy xuất (RAG): lấy tối đa 10 địa danh/món ăn của điểm đến hiện tại khớp câu hỏi
- *      từ dữ liệu của nhóm (VNScoring.retrieve) và gửi kèm làm ngữ cảnh.
- *   3. Máy chủ trung gian (worker/worker.js) gọi LLM, yêu cầu trả về JSON gồm lời đáp +
- *      hồ sơ du lịch có cấu trúc. LLM chỉ được nhắc tên địa điểm có trong ngữ cảnh.
- *   4. Hồ sơ được kiểm tra (chỉ nhận thẻ hợp lệ) rồi áp vào state.profile và các nút sở thích,
- *      để bộ chấm điểm (js/scoring.js) xếp lịch trình theo đúng nhu cầu.
- *
- * Nếu chưa cấu hình VNFINDER_CHAT_URL hoặc máy chủ lỗi, chatbot tự dùng bộ phân tích từ khóa
- * chạy trên trình duyệt, nên bản demo luôn hoạt động.
+ * Hỗ trợ 3 phương thức linh hoạt:
+ *   1. Cloudflare Worker Proxy: bảo mật API key trên máy chủ (worker/worker.js).
+ *   2. Gọi trực tiếp Google Gemini API (gemini-2.5-flash) từ trình duyệt bằng API Key cá nhân.
+ *   3. Bộ phân tích từ khóa ngoại tuyến (Offline fallback): hoạt động độc lập ngay cả khi không có mạng.
  */
 (function () {
   'use strict';
 
-  // Điền URL của Cloudflare Worker sau khi triển khai (xem worker/README.md)
-  var CHAT_URL = window.VNFINDER_CHAT_URL || '';
-  var TIMEOUT_MS = 20000;
+  var STORAGE_KEY_GEMINI = 'vnfinder_gemini_api_key';
+  var STORAGE_KEY_WORKER = 'vnfinder_worker_url';
+  var STORAGE_KEY_MODEL = 'vnfinder_gemini_model';
+
+  var TIMEOUT_MS = 25000;
   var MAX_HISTORY = 8;
+  var DEFAULT_MODEL = 'gemini-2.5-flash';
 
   var history = [];
   var busy = false;
   var els = {};
 
   function esc(s) {
-    return String(s).replace(/[&<>"']/g, function (c) {
+    return String(s || '').replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
+  }
+
+  function getStoredApiKey() {
+    return (window.GEMINI_API_KEY || localStorage.getItem(STORAGE_KEY_GEMINI) || '').trim();
+  }
+
+  function getStoredWorkerUrl() {
+    return (window.VNFINDER_CHAT_URL || localStorage.getItem(STORAGE_KEY_WORKER) || '').trim();
+  }
+
+  function getStoredModel() {
+    return localStorage.getItem(STORAGE_KEY_MODEL) || DEFAULT_MODEL;
+  }
+
+  function getActiveMode() {
+    var worker = getStoredWorkerUrl();
+    if (worker) return { mode: 'worker', label: 'Cloudflare Worker', detail: worker };
+    var key = getStoredApiKey();
+    if (key) return { mode: 'gemini', label: 'Gemini API (Trực tiếp)', detail: key.slice(0, 6) + '••••' + key.slice(-4) };
+    return { mode: 'offline', label: 'Chế độ Ngoại tuyến', detail: 'Tự động phân tích từ khóa' };
   }
 
   // Dịch qua js/i18n-ext.js (nếu chưa nạp thì giữ nguyên tiếng Việt)
@@ -49,22 +65,21 @@
     var normT = t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd');
     var lang = document.documentElement.lang === 'en' ? 'en' : 'vi';
 
-    // Xử lý linh hoạt các câu hỏi FAQ thường gặp
     if (normT.indexOf('mua nao') !== -1 || normT.indexOf('thoi tiet') !== -1 || normT.indexOf('season') !== -1 || normT.indexOf('weather') !== -1) {
       var rep = lang === 'en' ? 'Central Vietnam (Da Nang, Quy Nhon, Nha Trang...) is best visited during the dry season (January - August) with clear skies and calm seas. From September to December is usually the rainy/typhoon season, so please check the forecast before going!' : 'Thời tiết miền Trung (Đà Nẵng, Quy Nhơn, Nha Trang...) đẹp nhất vào mùa khô (tháng 1 - tháng 8). Từ tháng 9 - tháng 12 thường có mưa bão, bạn nên xem trước dự báo thời tiết nhé!';
-      return { reply: rep, profile: { prefs: [], boost: {}, avoid: [], intensity: 'normal', notes: '' } };
+      return { reply: rep, profile: { prefs: [], boost: {}, avoid: [], intensity: 'normal', notes: '' }, alternatives: [] };
     }
     if (normT.indexOf('check-in la gi') !== -1 || normT.indexOf('check-in dung') !== -1 || normT.indexOf('tinh nang check-in') !== -1 || normT.indexOf('what is check-in') !== -1) {
-      var rep2 = lang === 'en' ? 'The Check-in feature on VNFinder helps you mark the places you have visited on the map, like a miniature travel diary. You can open the "Check-in" tab to explore!' : 'Tính năng Check-in trên VNFinder giúp bạn đánh dấu lại các địa danh đã ghé thăm trên bản đồ, như một cuốn nhật ký du lịch thu nhỏ. Bạn có thể mở tab "Check-in" để khám phá!';
-      return { reply: rep2, profile: { prefs: [], boost: {}, avoid: [], intensity: 'normal', notes: '' } };
+      var rep2 = lang === 'en' ? 'The Check-in feature on VNFinder helps you mark the places you have visited on the map, like a miniature travel diary. You can open the "Check-in" tab to explore! [[go:checkin]]' : 'Tính năng Check-in trên VNFinder giúp bạn đánh dấu lại các địa danh đã ghé thăm trên bản đồ, như một cuốn nhật ký du lịch thu nhỏ. Bạn có thể mở tab "Check-in" để khám phá! [[go:checkin]]';
+      return { reply: rep2, profile: { prefs: [], boost: {}, avoid: [], intensity: 'normal', notes: '' }, alternatives: [] };
     }
     if (normT.indexOf('lich trinh 3 ngay') !== -1 || normT.indexOf('goi y lich trinh') !== -1 || normT.indexOf('3-day') !== -1 || normT.indexOf('itinerary') !== -1) {
-      var rep3 = lang === 'en' ? 'To create an itinerary, just open the "Itinerary" tab, type a destination (e.g., Da Lat, Quy Nhon), choose the number of nights (e.g., 2 nights), and select your preferences. I will automatically arrange the most optimal sightseeing spots for you!' : 'Để tạo lịch trình, bạn chỉ cần mở tab "Lịch trình", gõ tên điểm đến (VD: Đà Lạt, Quy Nhơn), chọn số đêm (VD: 2 đêm) và chọn các sở thích của bạn. Mình sẽ tự động sắp xếp điểm tham quan tối ưu nhất!';
-      return { reply: rep3, profile: { prefs: [], boost: {}, avoid: [], intensity: 'normal', notes: '' } };
+      var rep3 = lang === 'en' ? 'To create an itinerary, just open the "Itinerary" tab, type a destination (e.g., Da Lat, Quy Nhon), choose the number of nights, and select your preferences. I will automatically arrange the most optimal sightseeing spots for you! [[go:itinerary]]' : 'Để tạo lịch trình, bạn chỉ cần mở tab "Lịch trình", chọn điểm đến (VD: Đà Lạt, Quy Nhơn), chọn số đêm và chọn các sở thích của bạn. Mình sẽ tự động sắp xếp điểm tham quan tối ưu nhất! [[go:itinerary]]';
+      return { reply: rep3, profile: { prefs: [], boost: {}, avoid: [], intensity: 'normal', notes: '' }, alternatives: [] };
     }
     if ((normT.indexOf('an gi') !== -1 || normT.indexOf('food') !== -1 || normT.indexOf('eat') !== -1) && normT.indexOf('hue') !== -1) {
       var rep4 = lang === 'en' ? 'In Hue, you must try: Hue beef noodle soup (Bun bo Hue), steamed flat rice dumplings (banh nam), water fern cake (banh beo), tapioca dumplings (banh bot loc), mussel rice, and alley sweet soup. Wishing you a delicious food tour!' : 'Đến Huế bạn nhất định phải thử: Bún bò Huế, bánh nậm, bánh bèo, bánh bột lọc, cơm hến và chè hẻm nhé. Chúc bạn có một chuyến food-tour thật ngon miệng!';
-      return { reply: rep4, profile: { prefs: [], boost: {}, avoid: [], intensity: 'normal', notes: '' } };
+      return { reply: rep4, profile: { prefs: [], boost: {}, avoid: [], intensity: 'normal', notes: '' }, alternatives: [] };
     }
 
     var has = function (arr) { return arr.some(function (w) { return t.indexOf(w) !== -1; }); };
@@ -89,7 +104,6 @@
 
     var seen = {};
     prefs = prefs.filter(function (p) { if (seen[p]) return false; seen[p] = 1; return true; });
-    // Một thẻ không thể vừa ưu tiên vừa tránh
     avoid = avoid.filter(function (p) { return prefs.indexOf(p) === -1; });
     prefs.forEach(function (p) { boost[p] = 1.5; });
 
@@ -99,7 +113,6 @@
     if (intensity === 'low') parts.push(lang === 'en' ? 'relaxed pace' : 'nhịp độ nhẹ nhàng');
     if (intensity === 'high') parts.push(lang === 'en' ? 'active pace' : 'nhịp độ năng động');
 
-    var normT = t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd');
     var K = (lang === 'en' && window.VN_CHAT_KNOWLEDGE_EN) ? window.VN_CHAT_KNOWLEDGE_EN : (window.VN_CHAT_KNOWLEDGE || {});
     var suggestions = Object.keys(K).filter(function(k) { return normT.indexOf(k) !== -1; }).slice(0, 2);
     var knowledgeReply = suggestions.length ? suggestions.map(function(k) { return K[k]; }).join('\n\n') : '';
@@ -110,16 +123,16 @@
     }
 
     if (parts.length) {
-      var recStr = lang === 'en' ? 'I have noted: {parts}. Please select a destination and dates, then create the itinerary.' : 'Mình đã ghi nhận: {parts}. Bạn chọn điểm và ngày đi rồi tạo lịch trình nhé.';
+      var recStr = lang === 'en' ? 'I have noted: {parts}. Please select a destination and dates, then create the itinerary. [[go:itinerary]]' : 'Mình đã ghi nhận: {parts}. Bạn chọn điểm và ngày đi rồi tạo lịch trình nhé. [[go:itinerary]]';
       reply += T(recStr, { parts: parts.join('; ') });
     } else if (!knowledgeReply) {
       reply = lang === 'en' ? 'I didn\'t catch any specific preferences. Could you elaborate? E.g., "love the beach, seafood, traveling with parents".' : 'Mình chưa bắt được sở thích cụ thể. Bạn thử nói rõ hơn, ví dụ "thích biển, ăn hải sản, đi với bố mẹ".';
     }
 
-    return { reply: reply, profile: { prefs: prefs, boost: boost, avoid: avoid, intensity: intensity, notes: '' } };
+    return { reply: reply, profile: { prefs: prefs, boost: boost, avoid: avoid, intensity: intensity, notes: '' }, alternatives: [] };
   }
 
-  /* ---------------- Ngữ cảnh gửi kèm (RAG) ---------------- */
+  /* ---------------- Ngữ cảnh gửi kèm (RAG & Trip data) ---------------- */
   function buildContext(query) {
     var ctx = { destination: '', duration: 0, prefs: [], candidates: [] };
     try {
@@ -130,38 +143,170 @@
         if (ctx.destination && typeof resolveItineraryPool === 'function' && window.VNScoring) {
           var province = state.destProvince || ctx.destination.split(',').pop().trim();
           var pool = resolveItineraryPool(ctx.destination, province);
-          ctx.candidates = window.VNScoring.retrieve(query, pool, 10).map(function (c) {
+          var searchQ = (window.VNChatTrip && typeof window.VNChatTrip.expandQuery === 'function')
+            ? window.VNChatTrip.expandQuery(query)
+            : query;
+          ctx.candidates = window.VNScoring.retrieve(searchQ, pool, 12).map(function (c) {
             return { name: c.item.dish || c.item.name, kind: c.item.dish ? 'món ăn' : 'địa danh', desc: String(c.item.desc || '').slice(0, 140) };
           });
         }
       }
-    } catch (e) { /* không có ngữ cảnh vẫn chạy được */ }
+      if (window.VNChatTrip && typeof window.VNChatTrip.collect === 'function') {
+        ctx.trip = window.VNChatTrip.collect();
+      }
+    } catch (e) { /* an toàn khi thiếu state */ }
     return ctx;
   }
 
-  /* ---------------- Gọi máy chủ trung gian ---------------- */
-  function callServer(userText) {
+  /* ---------------- Gọi Cloudflare Worker Proxy ---------------- */
+  function callServer(workerUrl, userText) {
     var ctrl = new AbortController();
     var timer = setTimeout(function () { ctrl.abort(); }, TIMEOUT_MS);
-    var body = { messages: history.slice(-MAX_HISTORY), context: buildContext(userText) };
+    var body = {
+      message: userText,
+      messages: history.slice(-MAX_HISTORY).map(function (m) {
+        return { role: m.role === 'model' ? 'assistant' : m.role, content: m.content };
+      }).concat([{ role: 'user', content: userText }]),
+      context: buildContext(userText)
+    };
     if (window.VNChat && window.VNChat.buildSystem) {
       body.system = window.VNChat.buildSystem(userText);
     }
-    return fetch(CHAT_URL, {
+    return fetch(workerUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
       signal: ctrl.signal
     }).then(function (res) {
       clearTimeout(timer);
-      if (!res.ok) throw new Error('HTTP ' + res.status);
+      if (!res.ok) throw new Error('Worker trả về HTTP ' + res.status);
       return res.json();
-    }).catch(function (err) { clearTimeout(timer); throw err; });
+    }).catch(function (err) {
+      clearTimeout(timer);
+      throw err;
+    });
+  }
+
+  /* ---------------- Gọi Trực Tiếp Google Gemini API ---------------- */
+  function callGeminiDirect(apiKey, userText) {
+    var ctrl = new AbortController();
+    var timer = setTimeout(function () { ctrl.abort(); }, TIMEOUT_MS);
+    var model = getStoredModel();
+    var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent?key=' + encodeURIComponent(apiKey);
+
+    var contextData = buildContext(userText);
+    var baseSystem = (window.VNChat && window.VNChat.buildSystem)
+      ? window.VNChat.buildSystem(userText)
+      : 'Bạn là trợ lý du lịch VNFinder, hỗ trợ du lịch Việt Nam.';
+
+    var systemInstructionText = baseSystem + '\n\n' +
+      'NGỮ CẢNH DỮ LIỆU CHUYẾN ĐI (JSON):\n' + JSON.stringify(contextData) + '\n\n' +
+      'QUY TẮC:\n' +
+      '1. Trả về JSON theo đúng định dạng được yêu cầu.\n' +
+      '2. Khi khách gặp sự cố thời tiết (mưa, bão) hoặc sức khỏe (mệt, ốm) hoặc thời gian (trễ giờ), hãy đề xuất 1-3 phương án thay thế trong "alternatives".\n' +
+      '3. Nếu người dùng muốn mở tab, thêm thẻ [[go:itinerary]], [[go:maps]], [[go:guide]], hoặc [[go:checkin]] ở cuối câu trả lời.\n' +
+      '4. Trả lời thân thiện, súc tích, cùng ngôn ngữ với khách.';
+
+    var contents = history.slice(-MAX_HISTORY).map(function (m) {
+      return {
+        role: m.role === 'assistant' ? 'model' : (m.role === 'model' ? 'model' : 'user'),
+        parts: [{ text: String(m.content).slice(0, 1500) }]
+      };
+    });
+    contents.push({
+      role: 'user',
+      parts: [{ text: userText }]
+    });
+
+    var schema = {
+      type: "OBJECT",
+      properties: {
+        reply: { type: "STRING", description: "Lời đáp thân thiện, súc tích" },
+        risk: { type: "STRING", enum: ["none", "low", "medium", "high"] },
+        alternatives: {
+          type: "ARRAY",
+          items: {
+            type: "OBJECT",
+            properties: {
+              title: { type: "STRING" },
+              day: { type: "INTEGER" },
+              slot: { type: "STRING" },
+              replaces: { type: "STRING" },
+              new_plan: { type: "STRING" },
+              reason: { type: "STRING" },
+              extra_time_min: { type: "INTEGER" },
+              indoor: { type: "BOOLEAN" },
+              generic: { type: "BOOLEAN" }
+            },
+            required: ["title", "new_plan"]
+          }
+        },
+        unchanged: { type: "STRING" },
+        profile: {
+          type: "OBJECT",
+          properties: {
+            prefs: { type: "ARRAY", items: { type: "STRING" } },
+            avoid: { type: "ARRAY", items: { type: "STRING" } },
+            intensity: { type: "STRING", enum: ["low", "normal", "high"] },
+            notes: { type: "STRING" }
+          }
+        }
+      },
+      required: ["reply"]
+    };
+
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: systemInstructionText }] },
+        contents: contents,
+        generationConfig: {
+          temperature: 0.4,
+          maxOutputTokens: 2048,
+          responseMimeType: "application/json",
+          responseSchema: schema
+        }
+      }),
+      signal: ctrl.signal
+    }).then(function (res) {
+      clearTimeout(timer);
+      if (!res.ok) {
+        return res.text().then(function (raw) {
+          var err;
+          try { err = JSON.parse(raw); } catch (e) {}
+          var msg = (err && err.error && err.error.message) || ('Gemini HTTP ' + res.status);
+          throw new Error(msg);
+        });
+      }
+      return res.json();
+    }).then(function (data) {
+      var cand = data.candidates && data.candidates[0];
+      var text = ((cand && cand.content && cand.content.parts) || []).map(function (p) { return p.text || ''; }).join('');
+      var parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch (e) {
+        var a = text.indexOf('{'), b = text.lastIndexOf('}');
+        if (a !== -1 && b > a) {
+          try { parsed = JSON.parse(text.slice(a, b + 1)); } catch (e2) {}
+        }
+      }
+      if (!parsed || typeof parsed.reply !== 'string') {
+        return { reply: text || 'Mình chưa có câu trả lời cho nội dung này.', profile: {}, alternatives: [] };
+      }
+      return parsed;
+    }).catch(function (err) {
+      clearTimeout(timer);
+      throw err;
+    });
   }
 
   /* ---------------- Kiểm tra + áp hồ sơ vào ứng dụng ---------------- */
   function sanitizeProfile(p) {
-    var valid = window.VNScoring ? window.VNScoring.TAGS : [];
+    var valid = window.VNScoring ? window.VNScoring.TAGS : [
+      'bien', 'nuirung', 'amthuc', 'disan', 'songnuoc', 'vanhoa', 'camtrai', 'checkin', 'sinhthai', 'giaitri'
+    ];
     p = p || {};
     var out = { prefs: [], boost: {}, avoid: [], intensity: 'normal', notes: '' };
     (Array.isArray(p.prefs) ? p.prefs : []).forEach(function (t) { if (valid.indexOf(t) !== -1 && out.prefs.indexOf(t) === -1) out.prefs.push(t); });
@@ -175,7 +320,6 @@
     out.prefs.forEach(function (t) { if (!out.boost[t]) out.boost[t] = 1.3; });
     if (['low', 'normal', 'high'].indexOf(p.intensity) !== -1) out.intensity = p.intensity;
     out.notes = typeof p.notes === 'string' ? p.notes.slice(0, 200) : '';
-    // Một thẻ không thể vừa ưu tiên vừa tránh
     out.avoid = out.avoid.filter(function (t) { return out.prefs.indexOf(t) === -1; });
     return out;
   }
@@ -183,7 +327,6 @@
   function applyProfile(profile) {
     if (typeof state === 'undefined') return;
     state.profile = { boost: profile.boost, avoid: profile.avoid, intensity: profile.intensity, notes: profile.notes };
-    // Đồng bộ các nút sở thích trên giao diện bằng chính trình xử lý click có sẵn
     if (profile.prefs.length) {
       document.querySelectorAll('.tag[data-tag]').forEach(function (btn) {
         var tag = btn.getAttribute('data-tag');
@@ -194,7 +337,36 @@
     }
   }
 
-  /* ---------------- Giao diện ---------------- */
+  /* ---------------- Trích xuất thẻ điều hướng [[go:...]] ---------------- */
+  function extractNavTags(text) {
+    var navs = [];
+    var cleaned = String(text || '').replace(/\[\[go:(itinerary|maps|guide|checkin|home|about)\]\]/gi, function (_, target) {
+      target = target.toLowerCase();
+      if (navs.indexOf(target) === -1) navs.push(target);
+      return '';
+    }).trim();
+    return { text: cleaned, navs: navs };
+  }
+
+  function handleNavClick(target) {
+    var panelMap = {
+      itinerary: 'panel-lich-trinh',
+      maps: 'panel-maps',
+      guide: 'panel-guide',
+      checkin: 'panel-checkin',
+      home: 'panel-home',
+      about: 'panel-about'
+    };
+    var panelId = panelMap[target];
+    if (panelId) {
+      var tabBtn = document.querySelector('.sh-tab[data-panel="' + panelId + '"]');
+      if (tabBtn) {
+        tabBtn.click();
+      }
+    }
+  }
+
+  /* ---------------- Giao diện tin nhắn ---------------- */
   function addMsg(role, html, cls) {
     var div = document.createElement('div');
     div.className = 'vnchat-msg ' + role + (cls ? ' ' + cls : '');
@@ -204,29 +376,58 @@
     return div;
   }
 
-  function renderBotReply(reply, profile, onDone) {
+  function renderBotReply(data, onDone) {
+    var profile = sanitizeProfile(data && data.profile);
+    var rawReply = (data && typeof data.reply === 'string' && data.reply.trim()) || T('Mình đã cập nhật nhu cầu của bạn.');
+    var parsed = extractNavTags(rawReply);
+    var replyText = parsed.text;
+    var navTargets = parsed.navs;
+
     var chips = '';
     profile.prefs.forEach(function (t) { chips += '<span class="vnchat-chip">' + esc(labelOf(t)) + '</span>'; });
     profile.avoid.forEach(function (t) { chips += '<span class="vnchat-chip avoid">' + esc(T('Tránh: {tags}', { tags: [t] })) + '</span>'; });
     if (chips) chips = '<div class="vnchat-applied">' + chips + '</div>';
-    
+
     var gen = document.getElementById('generate-btn');
     var btn = null;
     if (gen && (profile.prefs.length || profile.avoid.length || profile.intensity !== 'normal')) {
       btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'vnchat-cta';
-      if (window.VNI18n) window.VNI18n.set(btn, 'Tạo lịch trình theo nhu cầu này'); else btn.textContent = 'Tạo lịch trình theo nhu cầu này';
+      if (window.VNI18n) window.VNI18n.set(btn, 'Tạo lịch trình theo nhu cầu này');
+      else btn.textContent = 'Tạo lịch trình theo nhu cầu này';
       btn.addEventListener('click', function () { gen.click(); toggle(false); });
     }
 
     var node = addMsg('bot', '');
+
+    // Cảnh báo nếu có
+    if (data && data.warning) {
+      var warnEl = document.createElement('div');
+      warnEl.className = 'vnchat-warning-banner';
+      warnEl.textContent = data.warning;
+      node.appendChild(warnEl);
+    }
+
+    // Mức độ rủi ro (khi có sự cố bão, sức khỏe)
+    if (data && (data.risk === 'high' || data.risk === 'medium' || data.risk === 'low')) {
+      var riskLabel = {
+        high: '⚠️ Cảnh báo an toàn cao',
+        medium: '⚠️ Cần lưu ý điều kiện thực tế',
+        low: 'ℹ️ Cần chú ý nhẹ'
+      }[data.risk];
+      var riskBadge = document.createElement('div');
+      riskBadge.className = 'vnchat-risk-badge vnchat-risk-' + data.risk;
+      riskBadge.textContent = riskLabel;
+      node.appendChild(riskBadge);
+    }
+
     var textNode = document.createElement('span');
     node.appendChild(textNode);
-    
-    var chars = reply.split('');
+
+    var chars = replyText.split('');
     var i = 0;
-    
+
     function typeNext() {
       if (i < chars.length) {
         var c = chars[i];
@@ -237,8 +438,49 @@
         }
         i++;
         els.log.scrollTop = els.log.scrollHeight;
-        setTimeout(typeNext, 20);
+        setTimeout(typeNext, 18);
       } else {
+        // Đính kèm các nút điều hướng nhanh
+        if (navTargets.length) {
+          var navWrap = document.createElement('div');
+          navWrap.className = 'vnchat-nav-actions';
+          var navLabels = {
+            itinerary: '🗓️ Mở Lịch trình',
+            maps: '🗺️ Mở Bản đồ',
+            guide: '🧭 Mở Cẩm nang',
+            checkin: '📍 Mở Check-in',
+            home: '🏠 Về Trang chủ',
+            about: 'ℹ️ Về VNFinder'
+          };
+          navTargets.forEach(function (tgt) {
+            var nbtn = document.createElement('button');
+            nbtn.type = 'button';
+            nbtn.className = 'vnchat-nav-btn';
+            nbtn.textContent = navLabels[tgt] || ('Mở ' + tgt);
+            nbtn.addEventListener('click', function () {
+              handleNavClick(tgt);
+            });
+            navWrap.appendChild(nbtn);
+          });
+          node.appendChild(navWrap);
+        }
+
+        // Đính kèm các thẻ phương án thay thế sự cố (nếu có)
+        if (data && data.alternatives && data.alternatives.length > 0 && window.VNChatTrip && window.VNChatTrip.renderAlternatives) {
+          var altsCard = window.VNChatTrip.renderAlternatives(data.alternatives, function (alt) {
+            addMsg('bot', '✅ <b>Đã áp dụng phương án:</b> ' + esc(alt.title) + ' vào lịch trình của bạn!');
+          });
+          node.appendChild(altsCard);
+        }
+
+        // Thông báo phần lịch trình giữ nguyên
+        if (data && data.unchanged) {
+          var unch = document.createElement('div');
+          unch.className = 'vnchat-unchanged';
+          unch.textContent = '✅ Giữ nguyên: ' + data.unchanged;
+          node.appendChild(unch);
+        }
+
         if (chips) {
           var cdiv = document.createElement('div');
           cdiv.innerHTML = chips;
@@ -257,7 +499,7 @@
   function send(text) {
     text = String(text || '').trim().slice(0, 500);
     if (!text || busy) return;
-    
+
     var lang = document.documentElement.lang === 'en' ? 'en' : 'vi';
     var txt = (window.VNChat && window.VNChat.TEXT && window.VNChat.TEXT[lang]) || {};
 
@@ -268,9 +510,9 @@
     history.push({ role: 'user', content: text });
 
     if (window.VNChat && window.VNChat.isOutOfScope && window.VNChat.isOutOfScope(text)) {
-      var replyScope = txt.outOfScope || T('Ngoài phạm vi');
+      var replyScope = txt.outOfScope || T('Mình chỉ rành về du lịch Việt Nam thôi 😅 Bạn thử hỏi về điểm đến, lịch trình hoặc ẩm thực nhé!');
       history.push({ role: 'assistant', content: replyScope });
-      renderBotReply(replyScope, { prefs: [], avoid: [], intensity: 'normal', notes: '' }, function() {
+      renderBotReply({ reply: replyScope, profile: { prefs: [], avoid: [], intensity: 'normal', notes: '' } }, function () {
         busy = false;
         els.send.disabled = false;
         els.input.focus();
@@ -281,21 +523,33 @@
     var typingMsg = txt.typing || T('Đang suy nghĩ...');
     var typing = addMsg('bot', esc(typingMsg), 'typing');
 
-    var run = CHAT_URL
-      ? callServer(text).catch(function (err) {
-          console.warn('[VNFinder Chat] Máy chủ lỗi, dùng bộ phân tích dự phòng:', err);
-          return localParse(text);
-        })
-      : Promise.resolve(localParse(text));
+    var workerUrl = getStoredWorkerUrl();
+    var apiKey = getStoredApiKey();
 
-    run.then(function (data) {
+    var run;
+    if (workerUrl) {
+      run = callServer(workerUrl, text);
+    } else if (apiKey) {
+      run = callGeminiDirect(apiKey, text);
+    } else {
+      run = Promise.resolve(localParse(text));
+    }
+
+    run.catch(function (err) {
+      console.warn('[VNFinder Chat] Gọi API thất bại, chuyển sang bộ phân tích dự phòng:', err);
+      var fallbackData = localParse(text);
+      if (workerUrl || apiKey) {
+        fallbackData.warning = '⚠️ Không thể kết nối tới AI API (' + (err.message || 'Lỗi mạng') + '). Đang tạm dùng phản hồi cục bộ.';
+      }
+      return fallbackData;
+    }).then(function (data) {
       var profile = sanitizeProfile(data && data.profile);
       var reply = (data && typeof data.reply === 'string' && data.reply.trim()) || T('Mình đã cập nhật nhu cầu của bạn.');
       typing.remove();
       applyProfile(profile);
       history.push({ role: 'assistant', content: reply });
-      return new Promise(function(resolve) {
-        renderBotReply(reply, profile, resolve);
+      return new Promise(function (resolve) {
+        renderBotReply(data, resolve);
       });
     }).then(function () {
       busy = false;
@@ -303,6 +557,8 @@
       els.input.focus();
     }).catch(function (err) {
       console.error(err);
+      typing.remove();
+      addMsg('bot', '⚠️ Có lỗi xảy ra: ' + esc(err.message || err));
       busy = false;
       els.send.disabled = false;
     });
@@ -311,14 +567,114 @@
   function toggle(open) {
     var isOpen = open === undefined ? !els.panel.classList.contains('is-open') : open;
     els.panel.classList.toggle('is-open', isOpen);
-    
+
     if (isOpen) {
       els.fab.innerHTML = '<i data-lucide="x"></i>';
       els.input.focus();
+      updateStatusUI();
     } else {
       els.fab.innerHTML = '<i data-lucide="message-circle"></i>';
+      toggleSettings(false);
     }
     if (window.lucide && window.lucide.createIcons) window.lucide.createIcons({ root: els.fab });
+  }
+
+  function toggleSettings(open) {
+    var drawer = document.getElementById('vnchat-settings-drawer');
+    if (!drawer) return;
+    var isOpen = open === undefined ? drawer.hidden : !open;
+    drawer.hidden = !isOpen;
+    if (isOpen) {
+      updateStatusUI();
+      var keyInput = document.getElementById('vnchat-key-input');
+      var workerInput = document.getElementById('vnchat-worker-input');
+      if (keyInput) keyInput.value = localStorage.getItem(STORAGE_KEY_GEMINI) || '';
+      if (workerInput) workerInput.value = localStorage.getItem(STORAGE_KEY_WORKER) || '';
+    }
+  }
+
+  function updateStatusUI() {
+    var mode = getActiveMode();
+    var dot = document.getElementById('vnchat-status-dot');
+    var modeEl = document.getElementById('vnchat-status-mode');
+    var detailEl = document.getElementById('vnchat-status-detail');
+    if (dot) {
+      dot.className = 'vnchat-status-dot ' + (mode.mode === 'offline' ? 'offline' : (mode.mode === 'worker' ? 'worker' : ''));
+    }
+    if (modeEl) modeEl.textContent = mode.label;
+    if (detailEl) detailEl.textContent = mode.detail;
+  }
+
+  function testConnection() {
+    var resEl = document.getElementById('vnchat-test-result');
+    var btn = document.getElementById('vnchat-test-btn');
+    if (!resEl || !btn) return;
+
+    resEl.hidden = false;
+    resEl.className = 'vnchat-test-result';
+    resEl.textContent = 'Đang kiểm tra kết nối...';
+    btn.disabled = true;
+
+    var workerUrl = getStoredWorkerUrl();
+    var apiKey = getStoredApiKey();
+
+    if (workerUrl) {
+      fetch(workerUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: 'ping test',
+          messages: [{ role: 'user', content: 'Chào bạn, đây là tin nhắn thử kết nối API.' }],
+          context: { destination: 'Quy Nhơn' }
+        })
+      }).then(function (res) {
+        if (!res.ok) throw new Error('Worker trả về mã lỗi HTTP ' + res.status);
+        return res.json();
+      }).then(function (d) {
+        resEl.className = 'vnchat-test-result success';
+        resEl.textContent = '✅ Kết nối Cloudflare Worker thành công! AI sẵn sàng phản hồi.';
+        btn.disabled = false;
+        updateStatusUI();
+      }).catch(function (e) {
+        resEl.className = 'vnchat-test-result error';
+        resEl.textContent = '❌ Lỗi kết nối Worker: ' + (e.message || e);
+        btn.disabled = false;
+      });
+    } else if (apiKey) {
+      var model = getStoredModel();
+      var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent?key=' + encodeURIComponent(apiKey);
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: 'Trả về chuỗi JSON ngắn: {"reply":"Xin chào"}' }] }],
+          generationConfig: { maxOutputTokens: 50 }
+        })
+      }).then(function (res) {
+        if (!res.ok) {
+          return res.text().then(function (t) {
+            var j;
+            try { j = JSON.parse(t); } catch (_) {}
+            throw new Error((j && j.error && j.error.message) || ('HTTP ' + res.status));
+          });
+        }
+        return res.json();
+      }).then(function () {
+        resEl.className = 'vnchat-test-result success';
+        resEl.textContent = '✅ Kết nối Google Gemini API thành công! Mô hình ' + model + ' đã sẵn sàng.';
+        btn.disabled = false;
+        updateStatusUI();
+      }).catch(function (e) {
+        resEl.className = 'vnchat-test-result error';
+        resEl.textContent = '❌ Lỗi kết nối Gemini API: ' + (e.message || e);
+        btn.disabled = false;
+      });
+    } else {
+      resEl.className = 'vnchat-test-result';
+      resEl.textContent = 'ℹ️ Chưa cấu hình API Key hoặc Worker URL. Chatbot đang hoạt động ở chế độ ngoại tuyến.';
+      btn.disabled = false;
+      updateStatusUI();
+    }
   }
 
   function build() {
@@ -335,9 +691,51 @@
       '<header class="vnchat-head"><div><h3 data-vni-k="Trợ lý VNFinder">' + esc(title) + '</h3>' +
       '<small data-vni-k="Mô tả chuyến đi, mình sẽ chỉnh lịch trình">' + esc(T('Mô tả chuyến đi, mình sẽ chỉnh lịch trình')) + '</small></div>' +
       '<div class="vnchat-controls">' +
+      '<button type="button" class="vnchat-settings-btn" id="vnchat-settings-btn" title="Cài đặt kết nối AI API" aria-label="Cài đặt kết nối AI API"><i data-lucide="settings"></i></button>' +
       '<button type="button" class="vnchat-minimize" id="vnchat-minimize" data-vni-aria="Thu nhỏ" aria-label="' + esc(T('Thu nhỏ')) + '">&minus;</button>' +
       '<button type="button" class="vnchat-close" id="vnchat-close" data-vni-aria="Đóng" aria-label="' + esc(T('Đóng')) + '">&times;</button>' +
       '</div></header>' +
+
+      '<!-- Bảng Cài đặt API -->' +
+      '<div class="vnchat-settings-drawer" id="vnchat-settings-drawer" hidden>' +
+      '  <div class="vnchat-settings-head">' +
+      '    <h4>Cấu hình AI Chatbot</h4>' +
+      '    <button type="button" id="vnchat-settings-close" class="vnchat-settings-close-btn" aria-label="Đóng">&times;</button>' +
+      '  </div>' +
+      '  <div class="vnchat-settings-body">' +
+      '    <div class="vnchat-status-card" id="vnchat-status-card">' +
+      '      <div class="vnchat-status-dot" id="vnchat-status-dot"></div>' +
+      '      <div class="vnchat-status-text">' +
+      '        <strong id="vnchat-status-mode">Chế độ</strong>' +
+      '        <span id="vnchat-status-detail">Chi tiết</span>' +
+      '      </div>' +
+      '    </div>' +
+      '    <div class="vnchat-setting-group">' +
+      '      <label for="vnchat-key-input"><strong>Google Gemini API Key</strong><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Lấy key miễn phí ↗</a></label>' +
+      '      <div class="vnchat-input-row">' +
+      '        <input type="password" id="vnchat-key-input" placeholder="AIzaSy..." autocomplete="off">' +
+      '        <button type="button" id="vnchat-key-toggle-show" title="Hiện/Ẩn">👁️</button>' +
+      '      </div>' +
+      '      <div class="vnchat-btn-row">' +
+      '        <button type="button" id="vnchat-key-save" class="vnchat-btn-primary">Lưu API Key</button>' +
+      '        <button type="button" id="vnchat-key-clear" class="vnchat-btn-ghost">Xóa Key</button>' +
+      '      </div>' +
+      '    </div>' +
+      '    <div class="vnchat-setting-group">' +
+      '      <label for="vnchat-worker-input"><strong>Cloudflare Worker URL</strong><small>Proxy bảo mật trên server</small></label>' +
+      '      <input type="url" id="vnchat-worker-input" placeholder="https://vnfinder-chat.workers.dev" autocomplete="off">' +
+      '      <div class="vnchat-btn-row">' +
+      '        <button type="button" id="vnchat-worker-save" class="vnchat-btn-primary">Lưu URL</button>' +
+      '        <button type="button" id="vnchat-worker-clear" class="vnchat-btn-ghost">Xóa URL</button>' +
+      '      </div>' +
+      '    </div>' +
+      '    <div class="vnchat-setting-group">' +
+      '      <button type="button" id="vnchat-test-btn" class="vnchat-btn-test">⚡ Kiểm tra kết nối</button>' +
+      '      <div id="vnchat-test-result" class="vnchat-test-result" hidden></div>' +
+      '    </div>' +
+      '  </div>' +
+      '</div>' +
+
       '<div class="vnchat-log" id="vnchat-log" aria-live="polite"></div>' +
       '<div class="vnchat-suggest" id="vnchat-suggest"></div>' +
       '<form class="vnchat-form" id="vnchat-form" autocomplete="off">' +
@@ -356,10 +754,75 @@
     document.getElementById('vnchat-minimize').addEventListener('click', function () { toggle(false); });
     document.getElementById('vnchat-form').addEventListener('submit', function (e) { e.preventDefault(); send(els.input.value); });
 
+    // Cài đặt API
+    var btnSettings = document.getElementById('vnchat-settings-btn');
+    if (btnSettings) btnSettings.addEventListener('click', function () { toggleSettings(); });
+    var btnCloseSettings = document.getElementById('vnchat-settings-close');
+    if (btnCloseSettings) btnCloseSettings.addEventListener('click', function () { toggleSettings(false); });
+
+    var keyInput = document.getElementById('vnchat-key-input');
+    var btnToggleKey = document.getElementById('vnchat-key-toggle-show');
+    if (btnToggleKey && keyInput) {
+      btnToggleKey.addEventListener('click', function () {
+        keyInput.type = keyInput.type === 'password' ? 'text' : 'password';
+      });
+    }
+
+    var btnSaveKey = document.getElementById('vnchat-key-save');
+    if (btnSaveKey && keyInput) {
+      btnSaveKey.addEventListener('click', function () {
+        var k = keyInput.value.trim();
+        if (k) {
+          localStorage.setItem(STORAGE_KEY_GEMINI, k);
+          alert('Đã lưu Google Gemini API Key!');
+        } else {
+          localStorage.removeItem(STORAGE_KEY_GEMINI);
+        }
+        updateStatusUI();
+      });
+    }
+
+    var btnClearKey = document.getElementById('vnchat-key-clear');
+    if (btnClearKey && keyInput) {
+      btnClearKey.addEventListener('click', function () {
+        localStorage.removeItem(STORAGE_KEY_GEMINI);
+        keyInput.value = '';
+        alert('Đã xóa Gemini API Key.');
+        updateStatusUI();
+      });
+    }
+
+    var workerInput = document.getElementById('vnchat-worker-input');
+    var btnSaveWorker = document.getElementById('vnchat-worker-save');
+    if (btnSaveWorker && workerInput) {
+      btnSaveWorker.addEventListener('click', function () {
+        var u = workerInput.value.trim();
+        if (u) {
+          localStorage.setItem(STORAGE_KEY_WORKER, u);
+          alert('Đã lưu Cloudflare Worker URL!');
+        } else {
+          localStorage.removeItem(STORAGE_KEY_WORKER);
+        }
+        updateStatusUI();
+      });
+    }
+
+    var btnClearWorker = document.getElementById('vnchat-worker-clear');
+    if (btnClearWorker && workerInput) {
+      btnClearWorker.addEventListener('click', function () {
+        localStorage.removeItem(STORAGE_KEY_WORKER);
+        workerInput.value = '';
+        alert('Đã xóa Cloudflare Worker URL.');
+        updateStatusUI();
+      });
+    }
+
+    var btnTest = document.getElementById('vnchat-test-btn');
+    if (btnTest) {
+      btnTest.addEventListener('click', testConnection);
+    }
+
     var suggest = document.getElementById('vnchat-suggest');
-    var lang = document.documentElement.lang === 'en' ? 'en' : 'vi';
-    var txt = (window.VNChat && window.VNChat.TEXT && window.VNChat.TEXT[lang]) || {};
-    
     if (txt.chips && txt.chips.length) {
       txt.chips.forEach(function (chip) {
         var b = document.createElement('button');
@@ -381,20 +844,21 @@
 
     var greetingMsg = txt.greeting || T('Chào bạn! Hãy kể mình nghe về chuyến đi: đi với ai, thích gì, muốn nhẹ nhàng hay năng động. Mình sẽ điều chỉnh gợi ý lịch trình cho phù hợp.');
     var greet = addMsg('bot', esc(greetingMsg));
-    // Dùng data-vni-k tạm bằng nội dung gốc nếu không có txt.greeting
     if (!txt.greeting) greet.setAttribute('data-vni-k', greetingMsg);
     if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
+
+    updateStatusUI();
   }
 
   function updateChatLang(lang) {
     if (!window.VNChat || !window.VNChat.TEXT) return;
     var txt = window.VNChat.TEXT[lang] || window.VNChat.TEXT.vi || {};
-    
+
     var headTitle = document.querySelector('.vnchat-head h3');
     if (headTitle && txt.title) headTitle.textContent = txt.title;
-    
+
     if (els.input && txt.placeholder) els.input.placeholder = txt.placeholder;
-    
+
     var suggest = document.getElementById('vnchat-suggest');
     if (suggest && txt.chips && txt.chips.length) {
       suggest.innerHTML = '';
@@ -408,12 +872,12 @@
     }
 
     if (history.length === 0 && els.log && els.log.firstChild && txt.greeting) {
-       els.log.firstChild.innerHTML = esc(txt.greeting);
+      els.log.firstChild.innerHTML = esc(txt.greeting);
     }
   }
 
-  var observer = new MutationObserver(function(mutations) {
-    mutations.forEach(function(mutation) {
+  var observer = new MutationObserver(function (mutations) {
+    mutations.forEach(function (mutation) {
       if (mutation.attributeName === 'lang') {
         var newLang = document.documentElement.lang === 'en' ? 'en' : 'vi';
         updateChatLang(newLang);

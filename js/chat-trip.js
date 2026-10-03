@@ -35,13 +35,34 @@
   function itemName(x) { return x ? String(x.dish || x.name || x).slice(0, 80) : ''; }
 
   /* ---------- Lịch trình hiện tại ----------
-     GIẢ ĐỊNH: mỗi ngày là object có các khóa breakfast/morningVisit/lunch/afternoonVisit/dinner/nightlife
-     (khớp cấu trúc itinerary-data.js). Nếu state.itinerary của bạn khác, chỉ cần sửa hàm này. */
+     Đọc linh hoạt cả state.generatedItinerary (dạng object {1:..., 2:...}) và dạng mảng */
   function normalizeDays(it) {
-    var days = Array.isArray(it) ? it : (it && (it.days || it.plan));
-    if (!Array.isArray(days)) return null;
-    return days.slice(0, 10).map(function (d, i) {
-      var o = { day: i + 1 };
+    if (!it) return null;
+    var list = [];
+    if (Array.isArray(it)) {
+      list = it;
+    } else if (typeof it === 'object') {
+      var numKeys = Object.keys(it).filter(function (k) { return !isNaN(Number(k)); }).sort(function (a, b) { return Number(a) - Number(b); });
+      if (numKeys.length) {
+        list = numKeys.map(function (k) {
+          var d = it[k] || {};
+          return {
+            day: Number(k),
+            breakfast: (d.morning && d.morning.food && (d.morning.food[0] || d.morning.food)) || d.breakfast,
+            morningVisit: (d.morning && d.morning.visit && (d.morning.visit[0] || d.morning.visit)) || d.morningVisit,
+            lunch: (d.noon && d.noon.food && (d.noon.food[0] || d.noon.food)) || d.lunch,
+            afternoonVisit: (d.afternoon && d.afternoon.visit && (d.afternoon.visit[0] || d.afternoon.visit)) || d.afternoonVisit,
+            dinner: (d.evening && d.evening.food && (d.evening.food[0] || d.evening.food)) || d.dinner,
+            nightlife: (d.evening && d.evening.visit && (d.evening.visit[0] || d.evening.visit)) || d.nightlife
+          };
+        });
+      } else if (Array.isArray(it.days || it.plan)) {
+        list = it.days || it.plan;
+      }
+    }
+    if (!list.length) return null;
+    return list.slice(0, 10).map(function (d, i) {
+      var o = { day: d.day || (i + 1) };
       SLOTS.forEach(function (s) {
         var v = d && d[s];
         if (Array.isArray(v)) v = v[0];
@@ -55,9 +76,12 @@
     var s = (typeof state !== 'undefined') ? state : null;
     var now = new Date();
     var out = { now: now.toISOString(), today: iso(now), timezone: 'Asia/Ho_Chi_Minh' };
-    var it = s && (s.itinerary || s.plan || s.currentItinerary) || window.currentItinerary;
+    var it = (s && (s.generatedItinerary || s.itinerary || s.plan || s.currentItinerary)) || window.currentItinerary;
     var days = normalizeDays(it);
     if (days) out.days = days;
+    if (s && s.destination) out.destination = s.destination;
+    if (s && s.duration) out.duration = s.duration;
+    if (s && s.selectedPrefs) out.prefs = s.selectedPrefs;
     if (weatherCache && weatherCache.length) {
       out.weather = weatherCache.filter(Boolean).slice(0, 10).map(function (w) {
         return {
@@ -148,6 +172,32 @@
     });
     return wrap;
   }
+
+  // Lắng nghe sự kiện chọn phương án thay thế để áp dụng vào lịch trình
+  document.addEventListener('vnfinder:apply-alternative', function (e) {
+    var a = e.detail;
+    if (!a) return;
+    var s = (typeof state !== 'undefined') ? state : null;
+    if (s && s.generatedItinerary && a.day && s.generatedItinerary[a.day]) {
+      var dayObj = s.generatedItinerary[a.day];
+      var newObj = {
+        name: a.new_plan || a.title,
+        desc: (a.reason ? a.reason + ' · ' : '') + 'Thay cho: ' + (a.replaces || a.slot),
+        indoor: a.indoor,
+        isCustom: true
+      };
+      if (a.slot === 'breakfast' && dayObj.morning) dayObj.morning.food = [newObj];
+      else if (a.slot === 'morningVisit' && dayObj.morning) dayObj.morning.visit = [newObj];
+      else if (a.slot === 'lunch' && dayObj.noon) dayObj.noon.food = [newObj];
+      else if (a.slot === 'afternoonVisit' && dayObj.afternoon) dayObj.afternoon.visit = [newObj];
+      else if (a.slot === 'dinner' && dayObj.evening) dayObj.evening.food = [newObj];
+      else if (a.slot === 'nightlife' && dayObj.evening) dayObj.evening.visit = [newObj];
+      
+      if (typeof renderResult === 'function') {
+        renderResult();
+      }
+    }
+  });
 
   window.VNChatTrip = {
     collect: collect, isDisruption: isDisruption, expandQuery: expandQuery,
