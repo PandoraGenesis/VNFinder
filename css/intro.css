@@ -1056,7 +1056,9 @@ html[lang="vn"] .auth-login .auth-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 40px;
+  margin-top: 0;
+  /* Dính đáy trang — flex-shrink: 0 đảm bảo footer không bị co lại */
+  flex-shrink: 0;
 }
 
 .sh-footer p {
