@@ -1,0 +1,26 @@
+/* Thẻ phương án thay thế trong chatbot (nối thêm vào chat.css hoặc nạp riêng) */
+.vnchat-alts { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.vnchat-alt {
+  border: 1px solid rgba(0, 0, 0, .12);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, .6);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.vnchat-alt-title { font-weight: 700; margin-bottom: 2px; }
+.vnchat-alt-where { font-size: 12px; opacity: .7; margin-bottom: 4px; }
+.vnchat-alt-row { margin: 2px 0; }
+.vnchat-alt-reason { opacity: .8; font-style: italic; }
+.vnchat-alt-meta { font-size: 12px; opacity: .7; margin-top: 4px; }
+.vnchat-alt-pick {
+  margin-top: 8px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 600;
+  background: #0f766e;
+  color: #fff;
+}
+.vnchat-alt-pick:hover { filter: brightness(1.1); }
